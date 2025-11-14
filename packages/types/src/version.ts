@@ -35,3 +35,45 @@ export interface IntegrationVersionInfo {
      */
     supportedOperations: string[];
 }
+
+/**
+ * Standard platform operations supported by the platform library
+ */
+export const SUPPORTED_OPERATIONS = [
+    'send-chat-message',
+    'get-user-display-name',
+    'ban-user',
+    'timeout-user',
+    'set-stream-title',
+    'set-stream-category'
+] as const;
+
+/**
+ * Creates platform library version info object
+ * @returns Version info for the platform library
+ */
+export function createPlatformLibVersionInfo(): PlatformLibVersionInfo {
+    return {
+        version: PLATFORM_LIB_VERSION,
+        loaded: true
+    };
+}
+
+/**
+ * Helper to create integration version info
+ * @param config Configuration for the integration
+ * @returns IntegrationVersionInfo object
+ */
+export function createIntegrationVersionInfo(config: {
+    integrationId: string;
+    integrationName: string;
+    platformLibVersion: string;
+    supportedOperations: string[];
+}): IntegrationVersionInfo {
+    return {
+        integrationId: config.integrationId,
+        integrationName: config.integrationName,
+        platformLibVersion: config.platformLibVersion,
+        supportedOperations: config.supportedOperations
+    };
+}

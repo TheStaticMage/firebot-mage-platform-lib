@@ -201,36 +201,64 @@ describe('IntegrationDetector', () => {
         });
     });
 
-    describe('isVersionCompatible', () => {
-        it('should return true for exact match', () => {
-            expect(IntegrationDetector.isVersionCompatible('1.0.0', '1.0.0')).toBe(true);
+    describe('checkIntegrationCompatibility', () => {
+        it('should return compatible for valid detected integration', async () => {
+            const scripts = [
+                { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
+            ];
+
+            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            await detector.detectInstalledIntegrations();
+
+            const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
+            expect(result.compatible).toBe(true);
+            expect(result.reason).toBeUndefined();
         });
 
-        it('should return true for compatible caret range', () => {
-            expect(IntegrationDetector.isVersionCompatible('^1.0.0', '1.2.3')).toBe(true);
-            expect(IntegrationDetector.isVersionCompatible('^1.0.0', '1.9.9')).toBe(true);
+        it('should return incompatible for version mismatch', async () => {
+            const scripts = [
+                { name: 'Kick Integration', version: '0.5.0', id: 'firebot-mage-kick-integration' }
+            ];
+
+            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            await detector.detectInstalledIntegrations();
+
+            const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
+            expect(result.compatible).toBe(false);
+            expect(result.reason).toContain('does not satisfy requirement');
         });
 
-        it('should return false for incompatible major version', () => {
-            expect(IntegrationDetector.isVersionCompatible('^1.0.0', '2.0.0')).toBe(false);
+        it('should return incompatible for undetected integration', () => {
+            const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
+            expect(result.compatible).toBe(false);
+            expect(result.reason).toContain('not detected');
         });
 
-        it('should return true for compatible tilde range', () => {
-            expect(IntegrationDetector.isVersionCompatible('~1.2.0', '1.2.5')).toBe(true);
+        it('should return incompatible for integration without version', async () => {
+            const scripts = [
+                { name: 'Kick Integration', id: 'firebot-mage-kick-integration' }
+            ];
+
+            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            await detector.detectInstalledIntegrations();
+
+            const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
+            expect(result.compatible).toBe(false);
+            expect(result.reason).toContain('no version information');
         });
 
-        it('should return false for incompatible minor version with tilde', () => {
-            expect(IntegrationDetector.isVersionCompatible('~1.2.0', '1.3.0')).toBe(false);
-        });
+        it('should log warning for incompatible integration', async () => {
+            const scripts = [
+                { name: 'Kick Integration', version: '0.5.0', id: 'firebot-mage-kick-integration' }
+            ];
 
-        it('should handle invalid version strings gracefully', () => {
-            expect(IntegrationDetector.isVersionCompatible('invalid', '1.0.0')).toBe(false);
-            expect(IntegrationDetector.isVersionCompatible('^1.0.0', 'invalid')).toBe(false);
-        });
+            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            await detector.detectInstalledIntegrations();
 
-        it('should handle range comparisons', () => {
-            expect(IntegrationDetector.isVersionCompatible('>=1.0.0 <2.0.0', '1.5.0')).toBe(true);
-            expect(IntegrationDetector.isVersionCompatible('>=1.0.0 <2.0.0', '2.0.0')).toBe(false);
+            detector.checkIntegrationCompatibility('kick', '^0.6.0');
+            expect(mockLogger.warn).toHaveBeenCalledWith(
+                expect.stringContaining('incompatible')
+            );
         });
     });
 

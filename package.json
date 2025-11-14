@@ -33,6 +33,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
+        "@mage-platform-lib/types": "file:./packages/types",
         "semver": "^7.6.0"
     }
 }

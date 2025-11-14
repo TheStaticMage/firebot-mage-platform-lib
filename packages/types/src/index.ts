@@ -8,8 +8,18 @@
 export {
     PLATFORM_LIB_VERSION,
     PlatformLibVersionInfo,
-    IntegrationVersionInfo
+    IntegrationVersionInfo,
+    SUPPORTED_OPERATIONS,
+    createPlatformLibVersionInfo,
+    createIntegrationVersionInfo
 } from './version';
+
+// Version compatibility
+export {
+    VersionCheckResult,
+    PLATFORM_LIB_MIN_VERSION,
+    checkVersionCompatibility
+} from './version-compatibility';
 
 // Operation types
 export {

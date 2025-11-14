@@ -1,5 +1,5 @@
-import * as semver from 'semver';
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
+import { checkVersionCompatibility, VersionCheckResult } from '@mage-platform-lib/types';
 import { LogWrapper } from './main';
 
 /**
@@ -144,17 +144,37 @@ export class IntegrationDetector {
     }
 
     /**
-     * Validates semver compatibility between required and current versions
-     * @param required Required version (semver range, e.g., "^1.0.0")
-     * @param current Current version (e.g., "1.2.3")
-     * @returns true if current satisfies required
+     * Checks compatibility of a detected integration against required version
+     * @param platform Platform ID to check
+     * @param requiredVersion Required version range (e.g., "^0.6.0")
+     * @returns Version check result with compatibility status
      */
-    static isVersionCompatible(required: string, current: string): boolean {
-        try {
-            return semver.satisfies(current, required);
-        } catch {
-            return false;
+    checkIntegrationCompatibility(platform: string, requiredVersion: string): VersionCheckResult {
+        const info = this.getDetectedIntegrationInfo(platform);
+
+        if (!info) {
+            return {
+                compatible: false,
+                reason: `Integration ${platform} not detected`
+            };
         }
+
+        if (!info.version) {
+            return {
+                compatible: false,
+                reason: `Integration ${platform} has no version information`
+            };
+        }
+
+        const result = checkVersionCompatibility(requiredVersion, info.version);
+
+        if (!result.compatible) {
+            this.logger.warn(
+                `Integration ${platform} version ${info.version} is incompatible: ${result.reason}`
+            );
+        }
+
+        return result;
     }
 
     /**
