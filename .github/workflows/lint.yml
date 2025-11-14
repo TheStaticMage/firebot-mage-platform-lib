@@ -21,6 +21,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+      - name: Lint types package
+        run: |
+          cd packages/types
+          npm install
+          cd ../..
+          npx eslint packages/types/src/ --max-warnings 0
       - name: npm install
         run: npm install
       - name: Run ESLint
