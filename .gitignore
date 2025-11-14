@@ -23,6 +23,3 @@ node_modules/
 
 # Avoid accidentally committing tokens
 /client_secret_*.json
-
-# Development assistants
-/plans/
