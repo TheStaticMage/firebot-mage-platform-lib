@@ -38,3 +38,14 @@ export {
     DeregistrationResponse,
     QueryPlatformsResponse
 } from './registry';
+
+// IPC Serialization
+export {
+    SerializedMessage,
+    SerializationError,
+    DeserializationError,
+    ChecksumError,
+    serialize,
+    deserialize,
+    isSerializedMessage
+} from './ipc-serializer';
