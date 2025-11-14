@@ -49,7 +49,7 @@ const script: Firebot.CustomScript<ScriptParameters> = {
 
 export default script;
 
-class LogWrapper {
+export class LogWrapper {
     private _logger: Logger;
     private _debug: boolean;
 
