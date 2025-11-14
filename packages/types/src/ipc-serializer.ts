@@ -170,6 +170,7 @@ export function isSerializedMessage(value: unknown): value is SerializedMessage 
  * @returns JSON string of the serialized message with checksum
  * @throws SerializationError if serialization fails
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function serialize<T>(payload: T): string {
     try {
         const message = createSerializedMessage(payload);
@@ -187,6 +188,7 @@ export function serialize<T>(payload: T): string {
  * @throws DeserializationError if parsing or deserialization fails
  * @throws ChecksumError if checksum verification fails
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function deserialize<T>(jsonString: string): T {
     try {
         const message = JSON.parse(jsonString) as SerializedMessage<T>;

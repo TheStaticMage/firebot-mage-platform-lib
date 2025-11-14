@@ -2,7 +2,6 @@ import {
     serialize,
     deserialize,
     isSerializedMessage,
-    SerializationError,
     DeserializationError,
     ChecksumError,
     SerializedMessage
