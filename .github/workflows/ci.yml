@@ -26,6 +26,12 @@ jobs:
           node-version: '22.x'
       - name: Create dist directory
         run: mkdir -p dist
+      - name: Build and test types package
+        run: |
+          cd packages/types
+          npm install
+          npm run build
+          npm test
       - name: npm install
         run: npm install
       - name: get-version
