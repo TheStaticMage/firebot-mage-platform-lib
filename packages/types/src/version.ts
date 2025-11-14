@@ -41,11 +41,7 @@ export interface IntegrationVersionInfo {
  */
 export const SUPPORTED_OPERATIONS = [
     'send-chat-message',
-    'get-user-display-name',
-    'ban-user',
-    'timeout-user',
-    'set-stream-title',
-    'set-stream-category'
+    'get-user-display-name'
 ] as const;
 
 /**

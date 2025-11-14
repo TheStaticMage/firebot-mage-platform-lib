@@ -1,18 +1,10 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import {
-    BanUserRequest,
-    BanUserResponse,
     GetUserDisplayNameRequest,
     GetUserDisplayNameResponse,
     OperationName,
     SendChatMessageRequest,
-    SendChatMessageResponse,
-    SetStreamCategoryRequest,
-    SetStreamCategoryResponse,
-    SetStreamTitleRequest,
-    SetStreamTitleResponse,
-    TimeoutUserRequest,
-    TimeoutUserResponse
+    SendChatMessageResponse
 } from '@mage-platform-lib/types';
 import { IntegrationDetector } from './integration-detector';
 import { LogWrapper } from './main';
@@ -82,18 +74,6 @@ export class PlatformDispatcher {
 
             case 'get-user-display-name':
                 return this.getTwitchUserDisplayName(request as GetUserDisplayNameRequest) as TResponse;
-
-            case 'ban-user':
-                return this.banTwitchUser(request as BanUserRequest) as TResponse;
-
-            case 'timeout-user':
-                return this.timeoutTwitchUser(request as TimeoutUserRequest) as TResponse;
-
-            case 'set-stream-title':
-                return this.setTwitchStreamTitle(request as SetStreamTitleRequest) as TResponse;
-
-            case 'set-stream-category':
-                return this.setTwitchStreamCategory(request as SetStreamCategoryRequest) as TResponse;
 
             default:
                 throw new Error(`Unsupported Twitch operation: ${operation}`);
@@ -220,102 +200,6 @@ export class PlatformDispatcher {
         } catch (error) {
             this.logger.error(`Failed to get Twitch user display name: ${error}`);
             return { displayName: null };
-        }
-    }
-
-    /**
-     * Bans a user on Twitch
-     */
-    private async banTwitchUser(request: BanUserRequest): Promise<BanUserResponse> {
-        try {
-            const { twitchApi } = this.modules;
-
-            await twitchApi.moderation.banUser(request.username, request.reason);
-
-            this.logger.debug(`Banned Twitch user: ${request.username}`);
-            return { success: true };
-        } catch (error) {
-            this.logger.error(`Failed to ban Twitch user: ${error}`);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error)
-            };
-        }
-    }
-
-    /**
-     * Timeouts a user on Twitch
-     */
-    private async timeoutTwitchUser(request: TimeoutUserRequest): Promise<TimeoutUserResponse> {
-        try {
-            const { twitchApi } = this.modules;
-
-            await twitchApi.moderation.timeoutUser(
-                request.username,
-                request.durationMinutes * 60, // Convert to seconds
-                request.reason
-            );
-
-            this.logger.debug(`Timed out Twitch user: ${request.username} for ${request.durationMinutes} minutes`);
-            return { success: true };
-        } catch (error) {
-            this.logger.error(`Failed to timeout Twitch user: ${error}`);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error)
-            };
-        }
-    }
-
-    /**
-     * Sets the Twitch stream title
-     */
-    private async setTwitchStreamTitle(request: SetStreamTitleRequest): Promise<SetStreamTitleResponse> {
-        try {
-            const { twitchApi } = this.modules;
-
-            await twitchApi.channels.updateChannelInformation({ title: request.title });
-
-            this.logger.debug(`Set Twitch stream title: ${request.title}`);
-            return { success: true };
-        } catch (error) {
-            this.logger.error(`Failed to set Twitch stream title: ${error}`);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error)
-            };
-        }
-    }
-
-    /**
-     * Sets the Twitch stream category/game
-     */
-    private async setTwitchStreamCategory(
-        request: SetStreamCategoryRequest
-    ): Promise<SetStreamCategoryResponse> {
-        try {
-            const { twitchApi } = this.modules;
-
-            // Search for category by name
-            const categories = await twitchApi.categories.searchCategories(request.category);
-            if (!categories || categories.length === 0) {
-                return {
-                    success: false,
-                    error: `Game/Category not found: ${request.category}`
-                };
-            }
-
-            const gameId = categories[0].id;
-            await twitchApi.channels.updateChannelInformation({ gameId });
-
-            this.logger.debug(`Set Twitch stream category: ${request.category}`);
-            return { success: true };
-        } catch (error) {
-            this.logger.error(`Failed to set Twitch stream category: ${error}`);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error)
-            };
         }
     }
 }

@@ -28,14 +28,6 @@ export {
     SendChatMessageResponse,
     GetUserDisplayNameRequest,
     GetUserDisplayNameResponse,
-    BanUserRequest,
-    BanUserResponse,
-    TimeoutUserRequest,
-    TimeoutUserResponse,
-    SetStreamTitleRequest,
-    SetStreamTitleResponse,
-    SetStreamCategoryRequest,
-    SetStreamCategoryResponse,
     OperationName
 } from './operations';
 
