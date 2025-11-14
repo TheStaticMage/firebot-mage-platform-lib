@@ -2,7 +2,7 @@
     "name": "firebot-mage-platform-lib",
     "scriptOutputName": "firebot-mage-platform-lib",
     "version": "0.0.1",
-    "description": "A YouTube integration for Firebot",
+    "description": "Multi-platform support library for Firebot integrations",
     "main": "",
     "scripts": {
         "build": "npm run build:version && npm run build:webpack",
@@ -11,33 +11,25 @@
         "build:webpack": "webpack",
         "copy": "node ./scripts/copy-build.js",
         "prepare": "",
-        "test": "jest"
+        "test": "jest",
+        "lint": "eslint src/ --max-warnings 0"
     },
     "author": "thestaticmage",
-    "license": "GNU3",
+    "license": "GPL-3.0",
     "devDependencies": {
         "@crowbartools/firebot-custom-scripts-types": "github:TheStaticMage/firebot-custom-scripts-types#running",
         "@eslint/js": "^9.38.0",
         "@stylistic/eslint-plugin": "^5.5.0",
         "@types/jest": "^30.0.0",
-        "@types/luxon": "^3.7.1",
         "jest": "^30.2.0",
         "node-loader": "^2.1.0",
-        "protoc": "^33.0.0",
         "terser-webpack-plugin": "^5.3.14",
         "ts-jest": "^29.4.5",
         "ts-loader": "^9.5.4",
-        "ts-proto": "^2.8.3",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.46.2",
         "webpack": "^5.102.1",
         "webpack-cli": "^6.0.1"
     },
-    "dependencies": {
-        "@googleapis/youtube": "^29.0.0",
-        "@grpc/grpc-js": "^1.14.0",
-        "@grpc/proto-loader": "^0.8.0",
-        "google-auth-library": "^10.5.0",
-        "luxon": "^3.7.2"
-    }
+    "dependencies": {}
 }

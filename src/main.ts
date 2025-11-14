@@ -7,11 +7,15 @@ export let logger: LogWrapper;
 
 export const scriptVersion = '0.0.1';
 
-const script: Firebot.CustomScript = {
+interface ScriptParameters extends Record<string, unknown> {
+    debug?: boolean;
+}
+
+const script: Firebot.CustomScript<ScriptParameters> = {
     getScriptManifest: () => {
         return {
-            name: 'Mage Multi-Platform Support Library',
-            description: 'Support library for TheStaticMage multi-platform integrations.',
+            name: 'Platform Library',
+            description: 'Shared platform-aware logic for multi-platform streaming',
             author: 'The Static Mage',
             version: scriptVersion,
             startupOnly: true,
@@ -19,12 +23,27 @@ const script: Firebot.CustomScript = {
         };
     },
     getDefaultParameters: () => {
-        return {};
+        return {
+            debug: {
+                type: 'boolean',
+                title: 'Debug Mode',
+                default: false,
+                description: 'Enable debug logging'
+            }
+        };
     },
-    run: (runRequest: RunRequest<any>) => {
+    run: (runRequest: RunRequest<ScriptParameters>) => {
         firebot = runRequest;
-        logger = new LogWrapper(runRequest.modules.logger);
-        logger.info(`${IntegrationConstants.INTEGRATION_NAME} v${scriptVersion} initializing...`);
+        const debugMode = typeof runRequest.parameters?.debug === 'boolean' ? runRequest.parameters.debug : false;
+        logger = new LogWrapper(runRequest.modules.logger, debugMode);
+
+        logger.info(`Platform Library v${scriptVersion} initializing...`);
+
+        // TODO: Initialize PlatformLibrary class here when implemented
+        // const platformLib = new PlatformLibrary(logger, runRequest.modules, debugMode);
+        // await platformLib.initialize();
+
+        logger.info('Platform Library initialized successfully');
     }
 };
 
@@ -32,9 +51,11 @@ export default script;
 
 class LogWrapper {
     private _logger: Logger;
+    private _debug: boolean;
 
-    constructor(inLogger: Logger) {
+    constructor(inLogger: Logger, debug = false) {
         this._logger = inLogger;
+        this._debug = debug;
     }
 
     info(message: string) {
@@ -46,7 +67,9 @@ class LogWrapper {
     }
 
     debug(message: string) {
-        this._logger.debug(`[${IntegrationConstants.INTEGRATION_ID}] ${message}`);
+        if (this._debug) {
+            this._logger.debug(`[${IntegrationConstants.INTEGRATION_ID}] ${message}`);
+        }
     }
 
     warn(message: string) {
