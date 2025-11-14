@@ -5,8 +5,8 @@
     "description": "Multi-platform support library for Firebot integrations",
     "main": "",
     "scripts": {
-        "build": "npm run build:types && npm run build:version && npm run build:webpack",
-        "build:dev": "npm run build:types && npm run build:version && npm run build:webpack && npm run copy",
+        "build": "npm run build:types && npm install && npm run build:version && npm run build:webpack",
+        "build:dev": "npm run build:types && npm install && npm run build:version && npm run build:webpack && npm run copy",
         "build:types": "cd packages/types && npm install && npm run build",
         "build:version": "node ./scripts/update-version.js",
         "build:webpack": "webpack",
