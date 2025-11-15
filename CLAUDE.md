@@ -6,6 +6,7 @@
 - Summarize completed tasks in ≤3 sentences.
 - Update this file for major features, patterns, milestones, or testing strategies.
 - Avoid detailed summaries or new markdown files unless requested.
+- **Git commits**: Do NOT create commits when running locally. (OK for Claude Code Web.)
 
 ## Features
 

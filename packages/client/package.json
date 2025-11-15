@@ -1,5 +1,5 @@
 {
-    "name": "@mage-platform-lib/client",
+    "name": "@thestaticmage/mage-platform-lib-client",
     "version": "1.0.0",
     "description": "Client library with shared TypeScript types for the Mage Platform Library and integrations",
     "main": "dist/index.js",
@@ -24,7 +24,8 @@
         "directory": "packages/client"
     },
     "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
+        "registry": "https://npm.pkg.github.com",
+        "access": "public"
     },
     "devDependencies": {
         "@types/jest": "^30.0.0",

@@ -5,7 +5,7 @@ import {
     OperationName,
     SendChatMessageRequest,
     SendChatMessageResponse
-} from '@mage-platform-lib/client';
+} from '@thestaticmage/mage-platform-lib-client';
 import { IntegrationDetector } from './integration-detector';
 import { LogWrapper } from './main';
 import { reflectEvent } from './reflector';

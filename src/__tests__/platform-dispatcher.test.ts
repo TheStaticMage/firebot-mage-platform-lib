@@ -6,7 +6,7 @@ import { LogWrapper } from '../main';
 import {
     SendChatMessageRequest,
     GetUserDisplayNameRequest
-} from '@mage-platform-lib/client';
+} from '@thestaticmage/mage-platform-lib-client';
 import { reflectEvent } from '../reflector';
 
 jest.mock('../reflector');

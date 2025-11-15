@@ -34,7 +34,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
-        "@mage-platform-lib/client": "file:./packages/client",
+        "@thestaticmage/mage-platform-lib-client": "file:./packages/client",
         "semver": "^7.6.0"
     },
     "overrides": {
