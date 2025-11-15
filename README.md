@@ -26,33 +26,62 @@ The Platform Library serves as a central hub for platform-aware features, provid
 
 This library is designed to be loaded as a Firebot startup script.
 
-1. Download the latest release from the [Releases](https://github.com/TheStaticMage/firebot-mage-platform-lib/releases) page
-2. Place the script in your Firebot scripts directory
-3. Configure it as a startup script in Firebot settings
-4. Restart Firebot
+1. Download the latest `firebot-mage-platform-lib.js` file from the [Releases](https://github.com/TheStaticMage/firebot-mage-platform-lib/releases) page
+2. In Firebot, go to Settings > Scripts
+3. Click "Add New Script" and select the downloaded file
+4. Enable "Run at Startup" for the script
+5. Restart Firebot
+
+The library will automatically initialize and make platform-aware features available to all your effects and commands.
 
 ## Dependencies
 
-- Firebot v5 or later
-- Platform integrations (Kick, YouTube) that support the Platform Library protocol
+- **Firebot v5** or later (required)
+- Platform integrations that support the Platform Library protocol v1.0.0:
+  - **Twitch**: Built-in support (no additional integration required)
+  - **Kick**: Requires [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) v0.6.0 or later
+  - **YouTube**: Requires [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) v0.1.0 or later
 
 ## Configuration
 
-The library accepts the following parameters:
+The library accepts the following startup script parameters:
 
-- `debug` (boolean, default: false) - Enable debug logging
+- **Debug Mode** (boolean, default: `false`) - Enable detailed debug logging to help troubleshoot issues
 
-## Platform Integrations
+To configure:
+1. Go to Settings > Scripts in Firebot
+2. Find "Platform Library" in your script list
+3. Click the settings icon
+4. Toggle "Debug Mode" if needed
+5. Save and restart Firebot
 
-This library works with the following integrations:
+## Supported Platforms
 
-- **Twitch**: Built-in support (no additional integration required)
-- **Kick**: Requires [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration)
-- **YouTube**: Requires [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration)
+| Platform | Support | Required Integration | Min Version |
+|----------|---------|---------------------|-------------|
+| Twitch | ✓ Built-in | None | N/A |
+| Kick | ✓ Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.6.0+ |
+| YouTube | ✓ Via Integration | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.1.0+ |
+
+## Version Compatibility
+
+**Platform Library Version**: 1.0.0
+
+**Compatible Integration Versions**:
+- Kick Integration: `^0.6.0` (0.6.0 or later, but before 1.0.0)
+- YouTube Integration: `^0.1.0` (0.1.0 or later, but before 1.0.0)
+
+The library uses semantic versioning. Breaking changes to the IPC protocol will increment the major version. Integrations must be updated when the major version changes.
+
+## Documentation
+
+- **[User Guide](doc/user-guide.md)** - How to use platform-aware features in your Firebot setup
+- **[Integration Developer Guide](doc/integration-guide.md)** - For developers creating platform integrations
+- **[API Reference](doc/api.md)** - Complete IPC protocol and interface documentation
 
 ## For Integration Developers
 
-If you're developing a platform integration that uses this library, see the [Integration Developer Guide](doc/integration-guide.md) for details on implementing the required IPC handlers.
+If you're developing a platform integration that uses this library, see the [Integration Developer Guide](doc/integration-guide.md) for details on implementing the required IPC handlers and operation contracts.
 
 ## Contributions
 

@@ -1,125 +1,413 @@
 # Integration Developer Guide
 
-> **Note**: This guide is under active development. The Platform Library is currently being implemented according to the [multi-platform refactor plan](../plans/multi-platform-refactor.md).
+This guide is for developers creating platform integrations (like Kick or YouTube) that work with the Platform Library.
 
 ## Overview
 
-This guide is for developers building platform integrations (like Kick or YouTube) that need to communicate with the Platform Library.
+The Platform Library provides a standardized way for platform integrations to:
+- Register themselves with the library
+- Receive platform-specific operations (send chat, get user info, etc.)
+- Integrate seamlessly with platform-aware effects and variables
+
+## Prerequisites
+
+- Firebot v5 or later
+- Platform Library v1.0.0 or later installed
+- Basic understanding of Firebot custom scripts and integrations
 
 ## Integration Registration Protocol
 
-### Registration Flow
+### Step 1: Check for Platform Library
 
-When your integration initializes, it must register with the Platform Library:
+Before registering, verify the Platform Library is installed and compatible:
 
-1. Check if Platform Library is installed and loaded
-2. Verify version compatibility
-3. Register your integration with supported operations
-4. Set up IPC handlers for platform operations
+```typescript
+import { checkVersionCompatibility } from '@mage-platform-lib/types';
 
-### Version Compatibility
+async function checkPlatformLib(frontendCommunicator: any, logger: any): Promise<boolean> {
+    try {
+        // Ping the library to verify it's loaded
+        const versionInfo = await frontendCommunicator.fireEventAsync('platform-lib:ping', null);
 
-Your integration should specify which Platform Library version it requires using semver notation (e.g., `^1.0.0`).
+        if (!versionInfo || !versionInfo.version) {
+            logger.error('Platform Library is not installed');
+            return false;
+        }
 
-## IPC Events
+        logger.info(`Platform Library detected: v${versionInfo.version}`);
 
-### Registration Events
+        // Check version compatibility
+        const requiredVersion = '^1.0.0'; // Your integration's requirement
+        const compatible = checkVersionCompatibility(requiredVersion, versionInfo.version);
 
-**`platform-lib:ping`** - Verify Platform Library is loaded
-- Request: none
-- Response: `{loaded: boolean, version: string}`
+        if (!compatible.compatible) {
+            logger.error(`Platform Library version incompatible: ${compatible.reason}`);
+            return false;
+        }
 
-**`platform-lib:register-integration`** - Register your integration
-- Request: `IntegrationVersionInfo` object
-- Response: `{success: boolean, error?: string}`
+        return true;
+    } catch (error) {
+        logger.error(`Failed to detect Platform Library: ${error}`);
+        return false;
+    }
+}
+```
 
-**`platform-lib:deregister-integration`** - Unregister on shutdown
-- Request: `{integrationId: string}`
-- Response: `{success: boolean}`
+### Step 2: Register Your Integration
 
-### Platform Operations
+Register during your integration's initialization:
 
-Platform operations follow the naming pattern: `{integrationName}:{operation}`
+```typescript
+import { RegistrationRequest } from '@mage-platform-lib/types';
 
-Example: `mage-kick-integration:send-chat-message`
+async function registerWithPlatformLib(
+    frontendCommunicator: any,
+    logger: any
+): Promise<void> {
+    const registrationRequest: RegistrationRequest = {
+        integration: {
+            integrationId: 'kick', // or 'youtube', etc.
+            integrationName: 'mage-kick-integration',
+            platformLibVersion: '^1.0.0',
+            supportedOperations: [
+                'send-chat-message',
+                'get-user-display-name',
+                'ban-user',
+                'timeout-user',
+                'set-stream-title',
+                'set-stream-category'
+            ]
+        }
+    };
 
-## Required Operation Handlers
+    try {
+        const response = await frontendCommunicator.fireEventAsync(
+            'platform-lib:register-integration',
+            registrationRequest
+        );
 
-Integrations should implement handlers for the following operations:
+        if (response && response.success) {
+            logger.info('Successfully registered with Platform Library');
+        } else {
+            throw new Error(response?.error || 'Registration failed');
+        }
+    } catch (error) {
+        logger.error(`Failed to register with Platform Library: ${error}`);
+        throw error;
+    }
+}
+```
 
-### Chat Operations
+### Step 3: Deregister on Shutdown
 
-**`send-chat-message`**
-- Request: `SendChatMessageRequest`
-- Response: `SendChatMessageResponse`
+Clean up when your integration disconnects:
 
-**`get-user-display-name`**
-- Request: `GetUserDisplayNameRequest`
-- Response: `GetUserDisplayNameResponse`
+```typescript
+import { DeregistrationRequest } from '@mage-platform-lib/types';
+
+async function deregisterFromPlatformLib(
+    frontendCommunicator: any,
+    logger: any
+): Promise<void> {
+    const request: DeregistrationRequest = {
+        integrationId: 'kick'
+    };
+
+    try {
+        await frontendCommunicator.fireEventAsync(
+            'platform-lib:deregister-integration',
+            request
+        );
+        logger.info('Deregistered from Platform Library');
+    } catch (error) {
+        logger.error(`Failed to deregister: ${error}`);
+    }
+}
+```
+
+## Implementing Operation Handlers
+
+Your integration must implement IPC handlers for each supported operation.
+
+### Send Chat Message
+
+```typescript
+import { SendChatMessageRequest, SendChatMessageResponse } from '@mage-platform-lib/types';
+
+function registerSendChatHandler(
+    backendCommunicator: any,
+    chatManager: any,
+    logger: any
+): void {
+    backendCommunicator.on(
+        'mage-kick-integration:send-chat-message', // Format: {integrationName}:{operation}
+        async (request: SendChatMessageRequest): Promise<SendChatMessageResponse> => {
+            try {
+                logger.debug(`Sending chat message: ${request.message}`);
+
+                await chatManager.sendKickChatMessage(
+                    request.message,
+                    request.replyId // Optional: for replying to messages
+                );
+
+                return {
+                    success: true
+                };
+            } catch (error) {
+                logger.error(`Failed to send chat message: ${error}`);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
+                };
+            }
+        }
+    );
+}
+```
+
+### Get User Display Name
+
+```typescript
+import { GetUserDisplayNameRequest, GetUserDisplayNameResponse } from '@mage-platform-lib/types';
+
+function registerGetUserDisplayNameHandler(
+    backendCommunicator: any,
+    userManager: any,
+    logger: any
+): void {
+    backendCommunicator.on(
+        'mage-kick-integration:get-user-display-name',
+        async (request: GetUserDisplayNameRequest): Promise<GetUserDisplayNameResponse> => {
+            try {
+                // Remove platform suffix if present (e.g., "username@kick" -> "username")
+                const cleanUsername = request.username.replace(/@kick$/, '');
+
+                const user = await userManager.getViewerByUsername(cleanUsername);
+
+                return {
+                    displayName: user?.displayName || null
+                };
+            } catch (error) {
+                logger.error(`Failed to get user display name: ${error}`);
+                return {
+                    displayName: null
+                };
+            }
+        }
+    );
+}
+```
 
 ### Moderation Operations
 
-**`ban-user`**
-- Request: `BanUserRequest`
-- Response: `{success: boolean, error?: string}`
+```typescript
+import { BanUserRequest, TimeoutUserRequest, ModerationResponse } from '@mage-platform-lib/types';
 
-**`timeout-user`**
-- Request: `TimeoutUserRequest`
-- Response: `{success: boolean, error?: string}`
+function registerModerationHandlers(
+    backendCommunicator: any,
+    userApi: any,
+    logger: any
+): void {
+    // Ban user (permanent)
+    backendCommunicator.on(
+        'mage-kick-integration:ban-user',
+        async (request: BanUserRequest): Promise<ModerationResponse> => {
+            try {
+                await userApi.banUserByUsername(request.username, 0); // 0 = permanent
+                return { success: true };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
+                };
+            }
+        }
+    );
+
+    // Timeout user (temporary)
+    backendCommunicator.on(
+        'mage-kick-integration:timeout-user',
+        async (request: TimeoutUserRequest): Promise<ModerationResponse> => {
+            try {
+                await userApi.banUserByUsername(
+                    request.username,
+                    request.durationMinutes
+                );
+                return { success: true };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
+                };
+            }
+        }
+    );
+}
+```
 
 ### Stream Management Operations
 
-**`set-stream-title`**
-- Request: `SetStreamTitleRequest`
-- Response: `{success: boolean, error?: string}`
+```typescript
+import {
+    SetStreamTitleRequest,
+    SetStreamCategoryRequest,
+    StreamManagementResponse
+} from '@mage-platform-lib/types';
 
-**`set-stream-category`**
-- Request: `SetStreamCategoryRequest`
-- Response: `{success: boolean, error?: string}`
+function registerStreamHandlers(
+    backendCommunicator: any,
+    streamApi: any,
+    logger: any
+): void {
+    // Set stream title
+    backendCommunicator.on(
+        'mage-kick-integration:set-stream-title',
+        async (request: SetStreamTitleRequest): Promise<StreamManagementResponse> => {
+            try {
+                await streamApi.setStreamTitle(request.title);
+                return { success: true };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
+                };
+            }
+        }
+    );
 
-## Type Definitions
+    // Set stream category
+    backendCommunicator.on(
+        'mage-kick-integration:set-stream-category',
+        async (request: SetStreamCategoryRequest): Promise<StreamManagementResponse> => {
+            try {
+                await streamApi.setStreamCategory(request.categoryId);
+                return { success: true };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
+                };
+            }
+        }
+    );
+}
+```
 
-Full type definitions will be available in the `@mage-platform-lib/types` npm package (coming soon).
+## Complete Integration Example
 
-## Example Implementation
+Here's a complete example of integration initialization:
 
 ```typescript
-// Example structure - full implementation details coming soon
+import { IntegrationDefinition } from '@crowbartools/firebot-custom-scripts-types';
+import {
+    checkVersionCompatibility,
+    RegistrationRequest,
+    DeregistrationRequest
+} from '@mage-platform-lib/types';
 
-import { IntegrationVersionInfo } from '@mage-platform-lib/types';
+export class MyPlatformIntegration {
+    async init(modules: any): Promise<void> {
+        const { frontendCommunicator, logger } = modules;
 
-const registrationInfo: IntegrationVersionInfo = {
-    integrationId: "your-platform",
-    integrationName: "your-integration-name",
-    platformLibVersion: "^1.0.0",
-    supportedOperations: [
-        "send-chat-message",
-        "get-user-display-name",
-        // ... other operations
-    ]
-};
+        // Step 1: Check Platform Library
+        const platformLibAvailable = await this.checkPlatformLib(
+            frontendCommunicator,
+            logger
+        );
 
-// Check Platform Library
-const result = await frontendCommunicator.fireEventAsync("platform-lib:ping");
+        if (!platformLibAvailable) {
+            throw new Error('Platform Library is required but not found');
+        }
 
-// Register
-await frontendCommunicator.fireEventAsync(
-    "platform-lib:register-integration",
-    registrationInfo
-);
+        // Step 2: Register handlers
+        this.registerOperationHandlers(modules);
 
-// Implement handlers
-frontendCommunicator.on("your-integration-name:send-chat-message", async (request) => {
-    // Handle chat message sending
-    return { success: true };
-});
+        // Step 3: Register with Platform Library
+        await this.registerWithPlatformLib(frontendCommunicator, logger);
+
+        logger.info('Integration initialized successfully');
+    }
+
+    async disconnect(modules: any): Promise<void> {
+        const { frontendCommunicator, logger } = modules;
+        await this.deregisterFromPlatformLib(frontendCommunicator, logger);
+    }
+
+    private registerOperationHandlers(modules: any): void {
+        const { backendCommunicator } = modules;
+
+        // Register all your operation handlers here
+        registerSendChatHandler(backendCommunicator, this.chatManager, modules.logger);
+        registerGetUserDisplayNameHandler(backendCommunicator, this.userManager, modules.logger);
+        registerModerationHandlers(backendCommunicator, this.userApi, modules.logger);
+        registerStreamHandlers(backendCommunicator, this.streamApi, modules.logger);
+    }
+
+    // ... checkPlatformLib, registerWithPlatformLib, deregisterFromPlatformLib methods
+}
 ```
+
+## Platform Naming Conventions
+
+- **Integration ID**: Lowercase platform name (`kick`, `youtube`, `trovo`)
+- **Integration Name**: Your package/script name (`mage-kick-integration`)
+- **IPC Event Names**: `{integrationName}:{operation-name}`
+- **Username Format**: Include platform suffix for disambiguation (`user@kick`, `user@youtube`)
+- **User ID Format**:
+  - Kick: `k{numeric-id}` (e.g., `k12345678`)
+  - YouTube: `y{alphanumeric-id}` (e.g., `y1234567890abcdefghijkl`)
+
+## Error Handling
+
+All operation handlers should:
+1. Catch all errors
+2. Return `{ success: false, error: "message" }` on failure
+3. Log errors with appropriate detail
+4. Never throw unhandled exceptions
+
+## Testing Your Integration
+
+1. **Install Platform Library**: Ensure it's loaded as a startup script
+2. **Enable Debug Mode**: Turn on debug logging in both the library and your integration
+3. **Check Registration**: Look for "Integration registered: {platform}" in logs
+4. **Test Operations**: Create effects using platform-aware features
+5. **Verify Dispatch**: Check logs for dispatch calls to your handlers
+
+## Version Compatibility
+
+Your integration should specify compatible Platform Library versions using semantic versioning:
+
+- `^1.0.0` - Compatible with 1.x.x (recommended)
+- `~1.0.0` - Compatible with 1.0.x only
+- `1.0.0` - Exact version only (not recommended)
+
+The Platform Library uses the following version policy:
+- **Major version** changes break the IPC protocol (requires integration updates)
+- **Minor version** adds new features (backward compatible)
+- **Patch version** fixes bugs (backward compatible)
+
+## Troubleshooting
+
+### Integration Not Detected
+
+- Verify Platform Library is installed and loaded
+- Check that registration succeeded (look for success response)
+- Ensure integration ID matches platform detector patterns
+
+### Operations Not Working
+
+- Verify handler IPC event names match expected format
+- Check that operations are listed in `supportedOperations`
+- Enable debug logging to see dispatch calls
+
+### Version Mismatch
+
+- Update integration to support newer Platform Library version
+- Or downgrade Platform Library to compatible version
+- Check compatibility with `checkVersionCompatibility()`
 
 ## Additional Resources
 
-- [Multi-Platform Refactor Plan](../plans/multi-platform-refactor.md) - Detailed implementation plan
-- [Platform Library README](../README.md) - User-facing documentation
-
-## Status
-
-This documentation will be completed as part of Phase 9 of the refactor plan. Check the [refactor plan](../plans/multi-platform-refactor.md) for current implementation status.
+- [API Reference](api.md) - Complete interface documentation
+- [User Guide](user-guide.md) - How users interact with platform features
+- [Platform Library Types](https://github.com/TheStaticMage/firebot-mage-platform-lib/tree/main/packages/types) - TypeScript type definitions
