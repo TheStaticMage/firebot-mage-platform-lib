@@ -8,7 +8,6 @@ import { LogWrapper } from '../main';
 describe('PlatformLibrary', () => {
     let mockLogger: LogWrapper;
     let mockModules: ScriptModules;
-    let mockBackendCommunicator: any;
     let mockFrontendCommunicator: any;
     let platformLib: PlatformLibrary;
 
@@ -21,23 +20,20 @@ describe('PlatformLibrary', () => {
             warn: jest.fn()
         } as unknown as LogWrapper;
 
-        // Mock backend communicator
+        // Mock frontend communicator with handler registration
         const handlers = new Map<string, (...args: any[]) => any>();
-        mockBackendCommunicator = {
+        mockFrontendCommunicator = {
             on: jest.fn((event: string, handler: (...args: any[]) => any) => {
                 handlers.set(event, handler);
             }),
             fireEventAsync: jest.fn()
         };
 
-        // Mock frontend communicator
-        mockFrontendCommunicator = {
-            fireEventAsync: jest.fn()
-        };
+        // Helper to get registered handler
+        mockFrontendCommunicator.getHandler = (event: string) => handlers.get(event);
 
         // Mock modules
         mockModules = {
-            backendCommunicator: mockBackendCommunicator,
             frontendCommunicator: mockFrontendCommunicator,
             replaceVariableManager: {
                 registerReplaceVariable: jest.fn()
@@ -59,9 +55,6 @@ describe('PlatformLibrary', () => {
             }
         } as unknown as ScriptModules;
 
-        // Helper to get registered handler
-        mockBackendCommunicator.getHandler = (event: string) => handlers.get(event);
-
         platformLib = new PlatformLibrary(mockLogger, mockModules, false);
     });
 
@@ -76,15 +69,15 @@ describe('PlatformLibrary', () => {
         it('should set up verification handlers', async () => {
             await platformLib.initialize();
 
-            expect(mockBackendCommunicator.on).toHaveBeenCalledWith('platform-lib:ping', expect.any(Function));
-            expect(mockBackendCommunicator.on).toHaveBeenCalledWith('platform-lib:get-version', expect.any(Function));
+            expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:ping', expect.any(Function));
+            expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:get-version', expect.any(Function));
         });
 
         it('should set up dispatch handlers', async () => {
             await platformLib.initialize();
 
-            expect(mockBackendCommunicator.on).toHaveBeenCalledWith('platform-lib:get-available-platforms', expect.any(Function));
-            expect(mockBackendCommunicator.on).toHaveBeenCalledWith('platform-lib:dispatch', expect.any(Function));
+            expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:get-available-platforms', expect.any(Function));
+            expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:dispatch', expect.any(Function));
         });
 
         it('should register all features', async () => {
@@ -104,7 +97,7 @@ describe('PlatformLibrary', () => {
 
         it('should log error and throw on initialization failure', async () => {
             const error = new Error('Test initialization error');
-            mockBackendCommunicator.on.mockImplementation(() => {
+            mockFrontendCommunicator.on.mockImplementation(() => {
                 throw error;
             });
 
@@ -119,7 +112,7 @@ describe('PlatformLibrary', () => {
         });
 
         it('should respond to ping with version info', () => {
-            const pingHandler = mockBackendCommunicator.getHandler('platform-lib:ping');
+            const pingHandler = mockFrontendCommunicator.getHandler('platform-lib:ping');
             const result = pingHandler();
 
             expect(result).toEqual(createPlatformLibVersionInfo());
@@ -127,7 +120,7 @@ describe('PlatformLibrary', () => {
         });
 
         it('should respond to get-version with version string', () => {
-            const versionHandler = mockBackendCommunicator.getHandler('platform-lib:get-version');
+            const versionHandler = mockFrontendCommunicator.getHandler('platform-lib:get-version');
             const result = versionHandler();
 
             expect(result).toBe(PLATFORM_LIB_VERSION);
@@ -141,7 +134,7 @@ describe('PlatformLibrary', () => {
         });
 
         // it('should return available platforms', () => {
-        //     const queryHandler = mockBackendCommunicator.getHandler('platform-lib:get-available-platforms');
+        //     const queryHandler = mockFrontendCommunicator.getHandler('platform-lib:get-available-platforms');
         //     const result = queryHandler();
 
         //     expect(result).toEqual({
@@ -151,7 +144,7 @@ describe('PlatformLibrary', () => {
         // });
 
         it('should dispatch operations to platform', async () => {
-            const dispatchHandler = mockBackendCommunicator.getHandler('platform-lib:dispatch');
+            const dispatchHandler = mockFrontendCommunicator.getHandler('platform-lib:dispatch');
             const request = {
                 platform: 'twitch',
                 operation: 'send-chat-message',
@@ -170,7 +163,7 @@ describe('PlatformLibrary', () => {
         });
 
         it('should handle dispatch errors', async () => {
-            const dispatchHandler = mockBackendCommunicator.getHandler('platform-lib:dispatch');
+            const dispatchHandler = mockFrontendCommunicator.getHandler('platform-lib:dispatch');
             const request = {
                 platform: 'unknown',
                 operation: 'invalid-op',

@@ -33,6 +33,16 @@
 - Events: Use enums for event constants.
 - Variables: Test only `evaluator` method; priority: argument → event metadata → integration state. Include examples array.
 
+## IPC Architecture
+
+**CRITICAL**: The platform library runs as a backend script and only has access to `frontendCommunicator`, NOT `backendCommunicator`.
+
+- Backend scripts (like platform library): Use `modules.frontendCommunicator` to set up handlers with `.on()` and communicate with frontend.
+- Frontend (Angular UI): Use `backendCommunicator` to call backend handlers.
+- Frontend reflector: Uses `frontendCommunicator.on()` to listen in the frontend and `frontendCommunicator.fireEventAsync()` to forward to backend.
+- Backend-to-backend: Must be reflected through frontend using the reflector pattern.
+- Effect option controllers: Run in Angular frontend, so they DO have access to `backendCommunicator`.
+
 ## Testing
 
 - Unit tests: Use Jest, place in `__tests__` under function location.

@@ -67,16 +67,16 @@ export class PlatformLibrary {
      * Set up verification and version check handlers
      */
     setupVerificationHandlers(): void {
-        const backendCommunicator = this.modules.backendCommunicator as any;
+        const frontendCommunicator = this.modules.frontendCommunicator;
 
         // Ping handler - confirms library is loaded
-        backendCommunicator.on('platform-lib:ping', () => {
+        frontendCommunicator.on('platform-lib:ping', () => {
             this.logger.debug('Received ping request');
             return createPlatformLibVersionInfo();
         });
 
         // Version handler - returns current version
-        backendCommunicator.on('platform-lib:get-version', () => {
+        frontendCommunicator.on('platform-lib:get-version', () => {
             this.logger.debug('Version requested');
             return PLATFORM_LIB_VERSION;
         });
@@ -88,10 +88,10 @@ export class PlatformLibrary {
      * Set up platform dispatch handlers
      */
     setupDispatchHandlers(): void {
-        const backendCommunicator = this.modules.backendCommunicator as any;
+        const frontendCommunicator = this.modules.frontendCommunicator;
 
         // Query available platforms handler
-        backendCommunicator.on(
+        frontendCommunicator.on(
             'platform-lib:get-available-platforms',
             () => {
                 this.logger.debug('Query platforms request');
@@ -101,7 +101,7 @@ export class PlatformLibrary {
         );
 
         // Dispatch handler - forwards operations to platforms
-        backendCommunicator.on(
+        frontendCommunicator.on(
             'platform-lib:dispatch',
             async (request: { platform: string; operation: string; data: unknown }) => {
                 this.logger.debug(`Dispatch request: ${request.operation} to ${request.platform}`);
