@@ -12,7 +12,7 @@ export interface VersionCheckResult {
  * Minimum platform-lib version required for integrations to use platform-aware features
  * Integrations can check against this to determine compatibility
  */
-export const PLATFORM_LIB_MIN_VERSION = '1.0.0';
+export const PLATFORM_LIB_MIN_VERSION = '0.0.1';
 
 /**
  * Checks version compatibility using semver ranges

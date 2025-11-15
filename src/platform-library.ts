@@ -1,19 +1,17 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import {
-    PLATFORM_LIB_VERSION,
     createPlatformLibVersionInfo,
-    RegistrationRequest,
-    DeregistrationRequest
+    PLATFORM_LIB_VERSION
 } from '@mage-platform-lib/types';
-import { LogWrapper } from './main';
+import { platformCondition } from './conditions/platform';
+import { createChatPlatformEffect } from './effects/chat-platform';
+import { platformFilter } from './filters/platform';
 import { IntegrationDetector } from './integration-detector';
+import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
+import { platformRestriction } from './restrictions/platform';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
-import { platformFilter } from './filters/platform';
-import { platformCondition } from './conditions/platform';
-import { platformRestriction } from './restrictions/platform';
-import { createChatPlatformEffect } from './effects/chat-platform';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -53,7 +51,6 @@ export class PlatformLibrary {
         try {
             // Set up IPC handlers
             this.setupVerificationHandlers();
-            this.setupRegistrationHandlers();
             this.setupDispatchHandlers();
 
             // Register features
@@ -85,60 +82,6 @@ export class PlatformLibrary {
         });
 
         this.logger.debug('Verification handlers registered');
-    }
-
-    /**
-     * Set up integration registration handlers
-     */
-    setupRegistrationHandlers(): void {
-        const backendCommunicator = this.modules.backendCommunicator as any;
-
-        // Register integration handler
-        backendCommunicator.on(
-            'platform-lib:register-integration',
-            (request: RegistrationRequest) => {
-                try {
-                    this.logger.debug(`Registration request from ${request.integration.integrationId}`);
-
-                    this.integrationDetector.registerIntegration({
-                        integrationId: request.integration.integrationId,
-                        integrationName: request.integration.integrationName,
-                        version: request.integration.platformLibVersion
-                    });
-
-                    this.logger.info(`Integration registered: ${request.integration.integrationId}`);
-                    return { success: true };
-                } catch (error) {
-                    this.logger.error(`Failed to register integration: ${error}`);
-                    return {
-                        success: false,
-                        error: error instanceof Error ? error.message : String(error)
-                    };
-                }
-            }
-        );
-
-        // Deregister integration handler
-        backendCommunicator.on(
-            'platform-lib:deregister-integration',
-            (request: DeregistrationRequest) => {
-                try {
-                    this.logger.debug(`Deregistration request from ${request.integrationId}`);
-
-                    this.integrationDetector.deregisterIntegration(request.integrationId);
-                    this.logger.info(`Integration deregistered: ${request.integrationId}`);
-                    return { success: true };
-                } catch (error) {
-                    this.logger.error(`Failed to deregister integration: ${error}`);
-                    return {
-                        success: false,
-                        error: error instanceof Error ? error.message : String(error)
-                    };
-                }
-            }
-        );
-
-        this.logger.debug('Registration handlers registered');
     }
 
     /**
