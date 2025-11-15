@@ -60,7 +60,7 @@ firebot-mage-platform-lib/
 **Task 2.1: Types Package Structure**
 - [ ] Create `packages/types/` directory
 - [ ] Create `packages/types/package.json`:
-  - Name: `@mage-platform-lib/types`
+  - Name: `@mage-platform-lib/client`
   - Version: `1.0.0`
   - Main: `dist/index.js`
   - Types: `dist/index.d.ts`
@@ -92,7 +92,7 @@ firebot-mage-platform-lib/
 **Task 2.3: Types Package Build & Publish**
 - [ ] Add build script to `packages/types/package.json`
 - [ ] Test local build with `npm run build`
-- [ ] Publish to npm as `@mage-platform-lib/types@1.0.0`
+- [ ] Publish to npm as `@mage-platform-lib/client@1.0.0`
 - [ ] Verify package can be installed
 
 ---
@@ -377,12 +377,12 @@ firebot-mage-platform-lib/
 ### Phase 1: Dependencies Update
 
 **Task 1.1: Package Updates**
-- [ ] Add `@mage-platform-lib/types` to dependencies in `package.json`
+- [ ] Add `@mage-platform-lib/client` to dependencies in `package.json`
 - [ ] Run `npm install` to install new dependency
 - [ ] Update any conflicting TypeScript types
 
 **Task 1.2: Import Updates**
-- [ ] Update imports to use `@mage-platform-lib/types`:
+- [ ] Update imports to use `@mage-platform-lib/client`:
   - `IntegrationVersionInfo`
   - `SendChatMessageRequest`
   - `SendChatMessageResponse`
@@ -713,7 +713,7 @@ firebot-mage-platform-lib/
 - Phase 7 (IPC handlers registered)
 
 ### Kick Can Start After:
-- Types package published (`@mage-platform-lib/types@1.0.0`)
+- Types package published (`@mage-platform-lib/client@1.0.0`)
 - Platform-lib IPC contract defined (doesn't need to be fully implemented)
 
 ### Parallel Work Possible:

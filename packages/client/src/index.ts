@@ -1,5 +1,5 @@
 /**
- * @mage-platform-lib/types
+ * @mage-platform-lib/client
  *
  * Shared TypeScript types for the Mage Platform Library and integrations
  */

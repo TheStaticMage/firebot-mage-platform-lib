@@ -1,5 +1,5 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
-import { checkVersionCompatibility, VersionCheckResult } from '@mage-platform-lib/types';
+import { checkVersionCompatibility, VersionCheckResult } from '@mage-platform-lib/client';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { LogWrapper } from './main';
 import { reflectEvent } from './reflector';

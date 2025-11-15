@@ -14,7 +14,7 @@ const main = async () => {
 
     console.log(`Current version: ${version}`);
 
-    const versionFilePath = path.resolve('./packages/types/src/version.ts');
+    const versionFilePath = path.resolve('./packages/client/src/version.ts');
 
     const updatePlatformVersion = async (filePath, version) => {
         const fileContent = await fs.readFile(filePath, 'utf8');

@@ -1,5 +1,5 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
-import { PLATFORM_LIB_VERSION, createPlatformLibVersionInfo } from '@mage-platform-lib/types';
+import { PLATFORM_LIB_VERSION, createPlatformLibVersionInfo } from '@mage-platform-lib/client';
 import { PlatformLibrary } from '../platform-library';
 import { LogWrapper } from '../main';
 

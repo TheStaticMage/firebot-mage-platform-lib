@@ -1,6 +1,6 @@
 import { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { GetUserDisplayNameResponse } from '@mage-platform-lib/types';
+import { GetUserDisplayNameResponse } from '@mage-platform-lib/client';
 import { PlatformDispatcher } from '../platform-dispatcher';
 import { detectPlatform } from '../platform-detector';
 import { LogWrapper } from '../main';

@@ -20,7 +20,7 @@ The Platform Library provides a standardized way for platform integrations to:
 Verify the Platform Library is installed and compatible:
 
 ```typescript
-import { checkVersionCompatibility } from '@mage-platform-lib/types';
+import { checkVersionCompatibility } from '@mage-platform-lib/client';
 
 async function checkPlatformLib(frontendCommunicator: any, logger: any): Promise<boolean> {
     try {
@@ -58,7 +58,7 @@ Your integration must implement IPC handlers for each supported operation.
 ### Send Chat Message
 
 ```typescript
-import { SendChatMessageRequest, SendChatMessageResponse } from '@mage-platform-lib/types';
+import { SendChatMessageRequest, SendChatMessageResponse } from '@mage-platform-lib/client';
 
 function registerSendChatHandler(
     backendCommunicator: any,
@@ -94,7 +94,7 @@ function registerSendChatHandler(
 ### Get User Display Name
 
 ```typescript
-import { GetUserDisplayNameRequest, GetUserDisplayNameResponse } from '@mage-platform-lib/types';
+import { GetUserDisplayNameRequest, GetUserDisplayNameResponse } from '@mage-platform-lib/client';
 
 function registerGetUserDisplayNameHandler(
     backendCommunicator: any,
@@ -134,7 +134,7 @@ import {
     checkVersionCompatibility,
     RegistrationRequest,
     DeregistrationRequest
-} from '@mage-platform-lib/types';
+} from '@mage-platform-lib/client';
 
 export class MyPlatformIntegration {
     async init(modules: any): Promise<void> {

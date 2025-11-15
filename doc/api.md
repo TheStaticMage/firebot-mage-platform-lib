@@ -492,7 +492,7 @@ Platform Library follows semantic versioning (MAJOR.MINOR.PATCH):
 Use the provided compatibility checker:
 
 ```typescript
-import { checkVersionCompatibility } from '@mage-platform-lib/types';
+import { checkVersionCompatibility } from '@mage-platform-lib/client';
 
 const result = checkVersionCompatibility('^1.0.0', '1.2.0');
 // result.compatible = true
@@ -523,7 +523,7 @@ When the MAJOR version changes, expect:
 Install type definitions for TypeScript projects:
 
 ```bash
-npm install @mage-platform-lib/types
+npm install @mage-platform-lib/client
 ```
 
 Import types:
@@ -535,7 +535,7 @@ import {
     RegistrationRequest,
     checkVersionCompatibility,
     PLATFORM_LIB_VERSION
-} from '@mage-platform-lib/types';
+} from '@mage-platform-lib/client';
 ```
 
 ## Additional Resources

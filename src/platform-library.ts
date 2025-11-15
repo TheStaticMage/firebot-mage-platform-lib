@@ -2,7 +2,7 @@ import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types'
 import {
     createPlatformLibVersionInfo,
     PLATFORM_LIB_VERSION
-} from '@mage-platform-lib/types';
+} from '@mage-platform-lib/client';
 import { platformCondition } from './conditions/platform';
 import { createChatPlatformEffect } from './effects/chat-platform';
 import { platformFilter } from './filters/platform';

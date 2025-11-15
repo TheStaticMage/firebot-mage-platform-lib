@@ -1,11 +1,11 @@
-# @mage-platform-lib/types
+# @mage-platform-lib/client
 
 Shared TypeScript type definitions for the Mage Platform Library and platform integrations.
 
 ## Installation
 
 ```bash
-npm install @mage-platform-lib/types
+npm install @mage-platform-lib/client
 ```
 
 ## Usage
@@ -15,7 +15,7 @@ import {
     IntegrationVersionInfo,
     SendChatMessageRequest,
     SendChatMessageResponse
-} from '@mage-platform-lib/types';
+} from '@mage-platform-lib/client';
 
 const versionInfo: IntegrationVersionInfo = {
     integrationId: "my-platform",
@@ -62,7 +62,7 @@ const versionInfo: IntegrationVersionInfo = {
 All IPC messages should use the serialization utilities to ensure type safety and data integrity:
 
 ```typescript
-import { serialize, deserialize } from '@mage-platform-lib/types';
+import { serialize, deserialize } from '@mage-platform-lib/client';
 
 // Sending a message
 const messageString = serialize({ username: "user123", action: "ban" });

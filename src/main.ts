@@ -1,6 +1,6 @@
 import { Firebot, RunRequest } from '@crowbartools/firebot-custom-scripts-types';
 import { Logger } from '@crowbartools/firebot-custom-scripts-types/types/modules/logger';
-import { PLATFORM_LIB_VERSION } from '@mage-platform-lib/types';
+import { PLATFORM_LIB_VERSION } from '@mage-platform-lib/client';
 import { IntegrationConstants } from './constants';
 import { PlatformLibrary } from './platform-library';
 
