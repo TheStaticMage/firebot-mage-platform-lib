@@ -107,12 +107,12 @@ export class PlatformLibrary {
             if (this.criticalErrors.length === 1) {
                 errorMessage = this.criticalErrors[0];
             } else {
-                const errorList = this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('<br><br>');
-                errorMessage = `Multiple errors occurred:<br><br>${errorList}`;
+                const errorList = this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('\n\n');
+                errorMessage = `Multiple errors occurred:\n\n${errorList}`;
             }
 
             // Add call to action
-            errorMessage += '<br><br><strong>Please ensure that the Mage Platform Library and all multi-platform integrations (e.g., Kick or YouTube) are up-to-date.</strong>';
+            errorMessage += '\n\n**Please ensure that the Mage Platform Library and all multi-platform integrations (e.g., Kick or YouTube) are up-to-date.**';
 
             this.sendCriticalErrorNotification(errorMessage);
         }
