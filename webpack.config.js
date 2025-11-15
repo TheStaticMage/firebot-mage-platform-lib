@@ -43,4 +43,10 @@ module.exports = {
             }),
         ],
     },
+    ignoreWarnings: [
+        {
+            module: /platform-library\.ts$/,
+            message: /Critical dependency: the request of a dependency is an expression/,
+        },
+    ],
 };
