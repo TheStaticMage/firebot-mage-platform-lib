@@ -14,6 +14,7 @@ import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { reflectorExtension } from './reflector';
+import { errorModalExtension } from './ui-extensions/error-modal';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -52,11 +53,12 @@ export class PlatformLibrary {
         this.logger.debug('Initializing Platform Library...');
         this.criticalErrors = [];
 
-        // Register the reflector UI extension for backend-to-backend communication
-        this.registerReflectorExtension();
+        // Register UI extensions
+        this.registerUiExtensions();
 
-        // Wait for reflector to be ready before using reflectEvent
+        // Wait for reflector and error modal to be ready
         await this.waitForReflectorReady();
+        await this.waitForErrorModalReady();
 
         try {
             // Detect installed integrations
@@ -89,11 +91,14 @@ export class PlatformLibrary {
     }
 
     /**
-     * Send a critical error notification to the user via modal
+     * Send a critical error notification to the user via custom error modal
      */
     private sendCriticalErrorNotification(message: string): void {
         const { frontendCommunicator } = this.modules;
-        frontendCommunicator.send('error', `Mage Platform Library: ${message}`);
+        frontendCommunicator.send('mage-platform-lib:show-error', {
+            title: 'Mage Platform Library Error',
+            message
+        });
         this.logger.info(`Critical error notification sent: ${message}`);
     }
 
@@ -107,15 +112,37 @@ export class PlatformLibrary {
             if (this.criticalErrors.length === 1) {
                 errorMessage = this.criticalErrors[0];
             } else {
-                const errorList = this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('\n\n');
-                errorMessage = `Multiple errors occurred:\n\n${errorList}`;
+                const errorList = this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('<br><br>');
+                errorMessage = `Multiple errors occurred:<br><br>${errorList}`;
             }
 
             // Add call to action
-            errorMessage += '\n\n**Please ensure that the Mage Platform Library and all multi-platform integrations (e.g., Kick or YouTube) are up-to-date.**';
+            errorMessage += '<br><br><strong>Please ensure that the Mage Platform Library and all multi-platform integrations (e.g., Kick or YouTube) are up-to-date.</strong>';
 
-            this.sendCriticalErrorNotification(errorMessage);
+            // Convert markdown-style formatting to HTML
+            const htmlMessage = this.convertMarkdownToHtml(errorMessage);
+            this.sendCriticalErrorNotification(htmlMessage);
         }
+    }
+
+    /**
+     * Convert markdown-style formatting to HTML
+     * Supports: **bold**, *italic*, line breaks, and basic formatting
+     */
+    private convertMarkdownToHtml(markdown: string): string {
+        let html = markdown;
+
+        // Convert **bold** to <strong>
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Convert *italic* to <em>
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // Convert newlines to <br>
+        html = html.replace(/\n\n/g, '<br><br>');
+        html = html.replace(/\n/g, '<br>');
+
+        return html;
     }
 
     /**
@@ -365,9 +392,33 @@ export class PlatformLibrary {
     }
 
     /**
-     * Register the reflector UI extension for backend-to-backend communication
+     * Wait for error modal UI extension to initialize
      */
-    private registerReflectorExtension(): void {
+    private waitForErrorModalReady(): Promise<void> {
+        return new Promise((resolve) => {
+            const { frontendCommunicator } = this.modules;
+            const timeoutMs = 5000;
+
+            const timeout = setTimeout(() => {
+                const errorMsg = `Error modal UI extension did not initialize within ${timeoutMs}ms`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(errorMsg);
+                // Resolve anyway to allow initialization to continue
+                resolve();
+            }, timeoutMs);
+
+            frontendCommunicator.on('mage-platform-lib:error-modal-ready', () => {
+                clearTimeout(timeout);
+                this.logger.debug('Error modal is ready');
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Register UI extensions for reflector and error modal
+     */
+    private registerUiExtensions(): void {
         try {
             const { uiExtensionManager } = this.modules;
             if (!uiExtensionManager) {
@@ -375,8 +426,12 @@ export class PlatformLibrary {
             }
             uiExtensionManager.registerUIExtension(reflectorExtension);
             this.logger.debug('Reflector UI extension registered');
+
+            // Register error modal UI extension
+            uiExtensionManager.registerUIExtension(errorModalExtension);
+            this.logger.debug('Error modal UI extension registered');
         } catch (error) {
-            const errorMsg = `Failed to register reflector UI extension: ${error}`;
+            const errorMsg = `Failed to register UI extensions: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(errorMsg);
         }

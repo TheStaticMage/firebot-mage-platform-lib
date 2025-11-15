@@ -25,8 +25,8 @@ describe('PlatformLibrary', () => {
         mockFrontendCommunicator = {
             on: jest.fn((event: string, handler: (...args: any[]) => any) => {
                 handlers.set(event, handler);
-                // Simulate reflector initialization completing after a short delay
-                if (event === 'mage-platform-lib:reflector-ready') {
+                // Simulate reflector and error modal initialization completing after a short delay
+                if (event === 'mage-platform-lib:reflector-ready' || event === 'mage-platform-lib:error-modal-ready') {
                     setImmediate(() => handler());
                 }
             }),
@@ -141,9 +141,14 @@ describe('PlatformLibrary', () => {
             // Should NOT log success message when there are critical errors
             expect(mockLogger.info).not.toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
 
-            // Should display critical error modal with updated branding
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Mage Platform Library:'));
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Multiple errors occurred'));
+            // Should display critical error using custom error modal
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'mage-platform-lib:show-error',
+                expect.objectContaining({
+                    title: 'Mage Platform Library Error',
+                    message: expect.stringContaining('Multiple errors occurred')
+                })
+            );
         });
 
         it('should log error and throw on handler setup failure', async () => {
@@ -152,10 +157,10 @@ describe('PlatformLibrary', () => {
             mockFrontendCommunicator.on.mockImplementation((event: string, handler: (...args: any[]) => any) => {
                 handlers.set(event, handler);
                 // Still need to simulate reflector-ready even when other handlers fail
-                if (event === 'mage-platform-lib:reflector-ready') {
+                if (event === 'mage-platform-lib:reflector-ready' || event === 'mage-platform-lib:error-modal-ready') {
                     setImmediate(() => handler());
                 } else {
-                    // Only throw for platform handlers, not for reflector-ready
+                    // Only throw for platform handlers, not for reflector/error-modal ready
                     throw error;
                 }
             });
@@ -163,9 +168,14 @@ describe('PlatformLibrary', () => {
             await expect(platformLib.initialize()).rejects.toThrow(error);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
 
-            // Should display critical error modal with updated branding
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Mage Platform Library:'));
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Failed to initialize Platform Library'));
+            // Should display critical error using custom error modal
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'mage-platform-lib:show-error',
+                expect.objectContaining({
+                    title: 'Mage Platform Library Error',
+                    message: expect.stringContaining('Failed to initialize Platform Library')
+                })
+            );
         });
     });
 
