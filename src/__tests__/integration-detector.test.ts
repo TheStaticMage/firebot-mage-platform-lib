@@ -1,14 +1,19 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { IntegrationDetector } from '../integration-detector';
-import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import { LogWrapper } from '../main';
+import { reflectEvent } from '../reflector';
+
+jest.mock('../reflector');
 
 describe('IntegrationDetector', () => {
-    let mockModules: ScriptModules;
     let mockLogger: LogWrapper;
     let detector: IntegrationDetector;
+    let mockModules: any;
+    const mockScriptDataDir = '/mock/script-data/test';
 
     beforeEach(() => {
+        jest.clearAllMocks();
+
         mockLogger = {
             debug: jest.fn(),
             info: jest.fn(),
@@ -16,13 +21,34 @@ describe('IntegrationDetector', () => {
             error: jest.fn()
         } as unknown as LogWrapper;
 
-        mockModules = {
-            frontendCommunicator: {
-                fireEventAsync: jest.fn()
-            }
-        } as unknown as ScriptModules;
+        const pathModule = {
+            resolve: jest.fn((...args: string[]) => args.join('/')),
+            join: jest.fn((...args: string[]) => args.join('/'))
+        };
 
-        detector = new IntegrationDetector(mockModules, mockLogger);
+        const fsModule = {
+            existsSync: jest.fn(() => true),
+            readFileSync: jest.fn(() => {
+                // Return a minimal webpack bundle that exports getScriptManifest
+                return `
+                    (function() {
+                        var exports = {};
+                        module.exports = {
+                            getScriptManifest: function() {
+                                return { version: "0.6.2" };
+                            }
+                        };
+                    })();
+                `;
+            })
+        };
+
+        mockModules = {
+            path: pathModule,
+            fs: fsModule
+        };
+
+        detector = new IntegrationDetector(mockLogger, mockModules, mockScriptDataDir);
     });
 
     describe('identifyIntegration', () => {
@@ -76,7 +102,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
 
@@ -89,7 +115,7 @@ describe('IntegrationDetector', () => {
                 { name: 'YouTube Integration', version: '0.0.1', id: 'firebot-mage-youtube-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
 
@@ -103,7 +129,7 @@ describe('IntegrationDetector', () => {
                 { name: 'YouTube Integration', version: '0.0.1' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
 
@@ -117,7 +143,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.6.2' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
 
@@ -125,7 +151,7 @@ describe('IntegrationDetector', () => {
         });
 
         it('should handle empty script list', async () => {
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue([]);
+            (reflectEvent as jest.Mock).mockResolvedValue([]);
 
             await detector.detectInstalledIntegrations();
 
@@ -134,7 +160,7 @@ describe('IntegrationDetector', () => {
         });
 
         it('should handle null response gracefully', async () => {
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(null);
+            (reflectEvent as jest.Mock).mockResolvedValue(null);
 
             await detector.detectInstalledIntegrations();
 
@@ -142,7 +168,7 @@ describe('IntegrationDetector', () => {
         });
 
         it('should handle errors gracefully', async () => {
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockRejectedValue(
+            (reflectEvent as jest.Mock).mockRejectedValue(
                 new Error('IPC failed')
             );
 
@@ -154,7 +180,7 @@ describe('IntegrationDetector', () => {
 
     describe('getAvailablePlatforms', () => {
         it('should always include twitch', async () => {
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue([]);
+            (reflectEvent as jest.Mock).mockResolvedValue([]);
 
             await detector.detectInstalledIntegrations();
 
@@ -168,7 +194,7 @@ describe('IntegrationDetector', () => {
                 { name: 'YouTube Integration', version: '0.0.1' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
 
@@ -183,7 +209,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
 
@@ -207,7 +233,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
             await detector.detectInstalledIntegrations();
 
             const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
@@ -220,7 +246,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.5.0', id: 'firebot-mage-kick-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
             await detector.detectInstalledIntegrations();
 
             const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
@@ -239,7 +265,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', id: 'firebot-mage-kick-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
             await detector.detectInstalledIntegrations();
 
             const result = detector.checkIntegrationCompatibility('kick', '^0.6.0');
@@ -252,7 +278,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.5.0', id: 'firebot-mage-kick-integration' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
             await detector.detectInstalledIntegrations();
 
             detector.checkIntegrationCompatibility('kick', '^0.6.0');
@@ -268,7 +294,7 @@ describe('IntegrationDetector', () => {
                 { name: 'Kick Integration', version: '0.6.2' }
             ];
 
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue(scripts);
+            (reflectEvent as jest.Mock).mockResolvedValue(scripts);
 
             await detector.detectInstalledIntegrations();
             expect(detector.isIntegrationDetected('kick')).toBe(true);
