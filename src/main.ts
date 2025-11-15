@@ -1,11 +1,11 @@
 import { Firebot, RunRequest } from '@crowbartools/firebot-custom-scripts-types';
 import { Logger } from '@crowbartools/firebot-custom-scripts-types/types/modules/logger';
+import { PLATFORM_LIB_VERSION } from '@mage-platform-lib/types';
 import { IntegrationConstants } from './constants';
+import { PlatformLibrary } from './platform-library';
 
 export let firebot: RunRequest<any>;
 export let logger: LogWrapper;
-
-export const scriptVersion = '0.0.1';
 
 interface ScriptParameters extends Record<string, unknown> {
     debug?: boolean;
@@ -17,7 +17,7 @@ const script: Firebot.CustomScript<ScriptParameters> = {
             name: 'Platform Library',
             description: 'Shared platform-aware logic for multi-platform streaming',
             author: 'The Static Mage',
-            version: scriptVersion,
+            version: PLATFORM_LIB_VERSION,
             startupOnly: true,
             firebotVersion: '5'
         };
@@ -32,18 +32,18 @@ const script: Firebot.CustomScript<ScriptParameters> = {
             }
         };
     },
-    run: (runRequest: RunRequest<ScriptParameters>) => {
+    run: async (runRequest: RunRequest<ScriptParameters>) => {
         firebot = runRequest;
         const debugMode = typeof runRequest.parameters?.debug === 'boolean' ? runRequest.parameters.debug : false;
         logger = new LogWrapper(runRequest.modules.logger, debugMode);
 
-        logger.info(`Platform Library v${scriptVersion} initializing...`);
+        logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initializing...`);
 
-        // TODO: Initialize PlatformLibrary class here when implemented
-        // const platformLib = new PlatformLibrary(logger, runRequest.modules, debugMode);
-        // await platformLib.initialize();
+        // Initialize Platform Library
+        const platformLib = new PlatformLibrary(logger, runRequest.modules, debugMode);
+        await platformLib.initialize();
 
-        logger.info('Platform Library initialized successfully');
+        // Startup scripts don't return anything - they just initialize
     }
 };
 

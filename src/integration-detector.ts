@@ -178,6 +178,32 @@ export class IntegrationDetector {
     }
 
     /**
+     * Manually register an integration (called via IPC)
+     * @param integration Integration metadata
+     */
+    registerIntegration(integration: { integrationId: string; integrationName: string; version: string }): void {
+        this.detectedIntegrations.set(integration.integrationId, {
+            scriptName: integration.integrationName,
+            version: integration.version,
+            scriptId: integration.integrationName
+        });
+        this.logger.info(`Manually registered integration: ${integration.integrationId} v${integration.version}`);
+    }
+
+    /**
+     * Manually deregister an integration (called via IPC)
+     * @param integrationId Platform ID to remove
+     */
+    deregisterIntegration(integrationId: string): void {
+        if (this.detectedIntegrations.has(integrationId)) {
+            this.detectedIntegrations.delete(integrationId);
+            this.logger.info(`Deregistered integration: ${integrationId}`);
+        } else {
+            this.logger.warn(`Attempted to deregister unknown integration: ${integrationId}`);
+        }
+    }
+
+    /**
      * Clears detected integrations (for testing)
      */
     clear(): void {
