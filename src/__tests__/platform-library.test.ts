@@ -26,7 +26,7 @@ describe('PlatformLibrary', () => {
             on: jest.fn((event: string, handler: (...args: any[]) => any) => {
                 handlers.set(event, handler);
             }),
-            fireEventAsync: jest.fn(),
+            fireEventAsync: jest.fn().mockResolvedValue([]),
             send: jest.fn()
         };
 
@@ -112,15 +112,15 @@ describe('PlatformLibrary', () => {
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform variable'));
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform-aware user display name variable'));
 
-            // Should log warning about failures
-            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Feature registration completed with'));
-            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('failures'));
+            // Should log error about failures
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Feature registration completed with'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('failures'));
 
-            // Should still complete initialization
-            expect(mockLogger.info).toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
+            // Should NOT log success message when there are critical errors
+            expect(mockLogger.info).not.toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
 
-            // Should display critical error modal
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Platform Library:'));
+            // Should display critical error modal with updated branding
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Mage Platform Library:'));
             expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Multiple errors occurred'));
         });
 
@@ -133,8 +133,8 @@ describe('PlatformLibrary', () => {
             await expect(platformLib.initialize()).rejects.toThrow(error);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
 
-            // Should display critical error modal
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Platform Library:'));
+            // Should display critical error modal with updated branding
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Mage Platform Library:'));
             expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Failed to initialize Platform Library'));
         });
     });
