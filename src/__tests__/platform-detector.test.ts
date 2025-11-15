@@ -101,7 +101,7 @@ describe('PlatformDetector', () => {
                 const trigger = {
                     metadata: {
                         chatMessage: {
-                            userId: 'UCabcdefghijklmnopqrs'
+                            userId: 'yabcdefghijklmnopqrs'
                         }
                     }
                 } as unknown as Trigger;
@@ -109,19 +109,19 @@ describe('PlatformDetector', () => {
                 expect(detectPlatform(trigger)).toBe('youtube');
             });
 
-            it('should not misidentify short UC strings', () => {
+            it('should detect Kick from chat message userId pattern', () => {
                 const trigger = {
                     metadata: {
                         chatMessage: {
-                            userId: 'UC123' // Too short to be a YouTube channel ID
+                            userId: 'k12345'
                         }
                     }
                 } as unknown as Trigger;
 
-                expect(detectPlatform(trigger)).toBe('unknown');
+                expect(detectPlatform(trigger)).toBe('kick');
             });
 
-            it('should fall through for numeric user IDs', () => {
+            it('should detect Twitch from numeric user ID', () => {
                 const trigger = {
                     metadata: {
                         chatMessage: {
@@ -130,8 +130,31 @@ describe('PlatformDetector', () => {
                     }
                 } as unknown as Trigger;
 
-                // Numeric IDs are ambiguous, should fall through
-                expect(detectPlatform(trigger)).toBe('unknown');
+                expect(detectPlatform(trigger)).toBe('twitch');
+            });
+
+            it('should detect Kick from username pattern', () => {
+                const trigger = {
+                    metadata: {
+                        chatMessage: {
+                            username: 'testuser@kick'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('kick');
+            });
+
+            it('should detect YouTube from username pattern', () => {
+                const trigger = {
+                    metadata: {
+                        chatMessage: {
+                            username: 'testuser@youtube'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('youtube');
             });
         });
 
@@ -140,7 +163,7 @@ describe('PlatformDetector', () => {
                 const trigger = {
                     metadata: {
                         eventData: {
-                            userId: 'UCabcdefghijklmnopqrstuvwxyz'
+                            userId: 'yabcdefghijklmnopqrstuvwxyz'
                         }
                     }
                 } as unknown as Trigger;
@@ -152,7 +175,7 @@ describe('PlatformDetector', () => {
                 const trigger = {
                     metadata: {
                         eventData: {
-                            userId: 'UCzyxwvutsrqponmlkjihgfedcba'
+                            userId: 'yzyxwvutsrqponmlkjihgfedcba'
                         }
                     }
                 } as unknown as Trigger;
@@ -164,10 +187,10 @@ describe('PlatformDetector', () => {
                 const trigger = {
                     metadata: {
                         chatMessage: {
-                            userId: 'UCabcdefghijklmnopqrstuvwxyz111'
+                            userId: 'yabcdefghijklmnopqrstuvwxyz111'
                         },
                         eventData: {
-                            userId: 'UCabcdefghijklmnopqrstuvwxyz222'
+                            userId: 'yabcdefghijklmnopqrstuvwxyz222'
                         }
                     }
                 } as unknown as Trigger;
@@ -178,14 +201,33 @@ describe('PlatformDetector', () => {
         });
 
         describe('Level 5: Top-level metadata', () => {
-            it('should detect from metadata.username', () => {
+            it('should detect Kick from metadata.username pattern', () => {
+                const trigger = {
+                    metadata: {
+                        username: 'testuser@kick'
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('kick');
+            });
+
+            it('should detect YouTube from metadata.username pattern', () => {
+                const trigger = {
+                    metadata: {
+                        username: 'testuser@youtube'
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('youtube');
+            });
+
+            it('should return unknown for username without platform indicator', () => {
                 const trigger = {
                     metadata: {
                         username: 'testuser'
                     }
                 } as unknown as Trigger;
 
-                // Username alone cannot determine platform reliably
                 expect(detectPlatform(trigger)).toBe('unknown');
             });
 
@@ -193,12 +235,36 @@ describe('PlatformDetector', () => {
                 const trigger = {
                     metadata: {
                         user: {
-                            id: 'UCabcdefghijklmnopqrstuvwxyz'
+                            id: 'yabcdefghijklmnopqrstuvwxyz'
                         }
                     }
                 } as unknown as Trigger;
 
                 expect(detectPlatform(trigger)).toBe('youtube');
+            });
+
+            it('should detect Kick from metadata.user.id', () => {
+                const trigger = {
+                    metadata: {
+                        user: {
+                            id: 'k12345'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('kick');
+            });
+
+            it('should detect Twitch from metadata.user.id', () => {
+                const trigger = {
+                    metadata: {
+                        user: {
+                            id: '12345678'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('twitch');
             });
         });
 
@@ -208,7 +274,7 @@ describe('PlatformDetector', () => {
                     metadata: {
                         platform: 'twitch',
                         eventSource: { id: 'kick' },
-                        chatMessage: { userId: 'UCabcdefghijklmnopqrstuvwxyz' }
+                        chatMessage: { userId: 'yabcdefghijklmnopqrstuvwxyz' }
                     }
                 } as unknown as Trigger;
 
@@ -219,7 +285,7 @@ describe('PlatformDetector', () => {
                 const trigger = {
                     metadata: {
                         eventSource: { id: 'kick' },
-                        chatMessage: { userId: 'UCabcdefghijklmnopqrstuvwxyz' }
+                        chatMessage: { userId: 'yabcdefghijklmnopqrstuvwxyz' }
                     }
                 } as unknown as Trigger;
 
@@ -229,7 +295,7 @@ describe('PlatformDetector', () => {
             it('should use chatMessage when higher levels are missing', () => {
                 const trigger = {
                     metadata: {
-                        chatMessage: { userId: 'UCabcdefghijklmnopqrstuvwxyz' }
+                        chatMessage: { userId: 'yabcdefghijklmnopqrstuvwxyz' }
                     }
                 } as unknown as Trigger;
 

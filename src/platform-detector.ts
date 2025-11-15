@@ -179,35 +179,53 @@ function checkMetadata(trigger: Trigger): string | null {
 
 /**
  * Detect platform from user ID patterns
- * Kick user IDs are numeric strings, YouTube IDs start with UC, Twitch IDs are numeric
+ * - Twitch user IDs are numeric
+ * - Kick user IDs start with 'k' plus the numeric ID from Kick
+ * - YouTube user IDs start with 'y' plus the ID from YouTube
  */
 function detectFromUserId(userId: string): string | null {
     if (!userId) {
         return null;
     }
 
-    // YouTube channel IDs typically start with UC
-    if (userId.startsWith('UC') && userId.length >= 20) {
+    // Kick user IDs start with 'k'
+    if (userId.startsWith('k') && userId.length > 1) {
+        return 'kick';
+    }
+
+    // YouTube user IDs start with 'y'
+    if (userId.startsWith('y') && userId.length > 1) {
         return 'youtube';
     }
 
-    // For numeric IDs, we can't reliably distinguish between Kick and Twitch
-    // so we return null to fall through to other detection methods
+    // Numeric IDs are Twitch
+    if (/^\d+$/.test(userId)) {
+        return 'twitch';
+    }
+
     return null;
 }
 
 /**
  * Detect platform from username patterns
- * This is a heuristic and may not be 100% accurate
+ * - Kick usernames end with '@kick'
+ * - YouTube usernames end with '@youtube'
  */
 function detectFromUsername(username: string): string | null {
     if (!username) {
         return null;
     }
 
-    // YouTube usernames often contain @ or have specific patterns
-    // This is a weak heuristic, so we'll only use it as a last resort
-    // For now, return null to indicate we can't determine from username alone
+    // Kick usernames end with '@kick'
+    if (username.endsWith('@kick')) {
+        return 'kick';
+    }
+
+    // YouTube usernames end with '@youtube'
+    if (username.endsWith('@youtube')) {
+        return 'youtube';
+    }
+
     return null;
 }
 
