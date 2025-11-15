@@ -14,6 +14,20 @@
 - Dispatches to Kick, YouTube, or Twitch handlers as needed.
 - Reflector IPC facility for backend/frontend communication.
 - Checks manifest for integration installation; exposes features accordingly.
+- Reusable utilities in client library: script version loader, reflector factory.
+
+## Reusable Utilities
+
+The client library (`@thestaticmage/mage-platform-lib-client`) exports reusable functions for integrations:
+
+- **`loadScriptVersion()`**: Extract version info from bundled Firebot scripts
+- **`createReflector()`**: Factory for creating custom IPC reflectors with configurable names
+- **`initializeReflector()`**: Convenience function combining reflector registration and initialization
+- **`createErrorModal()`**: Factory for creating custom error dialogs
+- **`initializeErrorModal()`**: Convenience function for error modal setup
+- **`getStartupScripts()`**: Retrieve list of Firebot startup scripts (manages own reflector singleton)
+
+See [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) for full documentation and examples.
 
 ## Tech Stack
 

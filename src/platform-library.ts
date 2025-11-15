@@ -1,7 +1,9 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import {
     createPlatformLibVersionInfo,
-    PLATFORM_LIB_VERSION
+    PLATFORM_LIB_VERSION,
+    createErrorModal,
+    initializeErrorModal
 } from '@thestaticmage/mage-platform-lib-client';
 import { platformCondition } from './conditions/platform';
 import { createChatPlatformEffect } from './effects/chat-platform';
@@ -14,7 +16,6 @@ import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { reflectorExtension } from './reflector';
-import { errorModalExtension } from './ui-extensions/error-modal';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -27,6 +28,7 @@ export class PlatformLibrary {
     private integrationDetector: IntegrationDetector;
     private platformDispatcher: PlatformDispatcher;
     private criticalErrors: string[] = [];
+    private showErrorModal: (title: string, message: string) => Promise<void>;
 
     constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string, debug = false) {
         this.logger = logger;
@@ -35,6 +37,11 @@ export class PlatformLibrary {
         this.debug = debug;
 
         this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}`);
+
+        // Create a placeholder showErrorModal function - will be properly set during initialize()
+        this.showErrorModal = async () => {
+            throw new Error('Error modal not initialized');
+        };
 
         // Initialize core services
         this.integrationDetector = new IntegrationDetector(logger, modules, scriptDataDir);
@@ -56,9 +63,18 @@ export class PlatformLibrary {
         // Register UI extensions
         this.registerUiExtensions();
 
-        // Wait for reflector and error modal to be ready
+        // Wait for reflector to be ready
         await this.waitForReflectorReady();
-        await this.waitForErrorModalReady();
+
+        // Initialize error modal (registers UI extension and sets up global modules reference)
+        await initializeErrorModal('mage-platform-lib', this.modules, this.logger, 5000);
+
+        // Get the showErrorModal function from the factory
+        const errorModalFactory = createErrorModal({
+            modalName: 'mage-platform-lib',
+            logger: this.logger
+        });
+        this.showErrorModal = errorModalFactory.showErrorModal;
 
         try {
             // Detect installed integrations
@@ -82,10 +98,10 @@ export class PlatformLibrary {
             }
 
             // Display critical errors if any occurred
-            this.displayCriticalErrors();
+            await this.displayCriticalErrors();
         } catch (error) {
             this.logger.error(`Failed to initialize Platform Library: ${error}`);
-            this.sendCriticalErrorNotification(`Failed to initialize Platform Library: ${error}`);
+            await this.sendCriticalErrorNotification(`Failed to initialize Platform Library: ${error}`);
             throw error;
         }
     }
@@ -93,19 +109,19 @@ export class PlatformLibrary {
     /**
      * Send a critical error notification to the user via custom error modal
      */
-    private sendCriticalErrorNotification(message: string): void {
-        const { frontendCommunicator } = this.modules;
-        frontendCommunicator.send('mage-platform-lib:show-error', {
-            title: 'Mage Platform Library Error',
-            message
-        });
-        this.logger.info(`Critical error notification sent: ${message}`);
+    private async sendCriticalErrorNotification(message: string): Promise<void> {
+        try {
+            await this.showErrorModal('Mage Platform Library Error', message);
+            this.logger.info(`Critical error notification sent: ${message}`);
+        } catch (error) {
+            this.logger.error(`Failed to show error modal: ${error}`);
+        }
     }
 
     /**
      * Display critical errors that occurred during initialization
      */
-    private displayCriticalErrors(): void {
+    private async displayCriticalErrors(): Promise<void> {
         if (this.criticalErrors.length > 0) {
             let errorMessage: string;
 
@@ -121,7 +137,7 @@ export class PlatformLibrary {
 
             // Convert markdown-style formatting to HTML
             const htmlMessage = this.convertMarkdownToHtml(errorMessage);
-            this.sendCriticalErrorNotification(htmlMessage);
+            await this.sendCriticalErrorNotification(htmlMessage);
         }
     }
 
@@ -392,31 +408,8 @@ export class PlatformLibrary {
     }
 
     /**
-     * Wait for error modal UI extension to initialize
-     */
-    private waitForErrorModalReady(): Promise<void> {
-        return new Promise((resolve) => {
-            const { frontendCommunicator } = this.modules;
-            const timeoutMs = 5000;
-
-            const timeout = setTimeout(() => {
-                const errorMsg = `Error modal UI extension did not initialize within ${timeoutMs}ms`;
-                this.logger.error(errorMsg);
-                this.criticalErrors.push(errorMsg);
-                // Resolve anyway to allow initialization to continue
-                resolve();
-            }, timeoutMs);
-
-            frontendCommunicator.on('mage-platform-lib:error-modal-ready', () => {
-                clearTimeout(timeout);
-                this.logger.debug('Error modal is ready');
-                resolve();
-            });
-        });
-    }
-
-    /**
-     * Register UI extensions for reflector and error modal
+     * Register UI extensions for reflector
+     * Error modal is registered separately by initializeErrorModal()
      */
     private registerUiExtensions(): void {
         try {
@@ -426,10 +419,6 @@ export class PlatformLibrary {
             }
             uiExtensionManager.registerUIExtension(reflectorExtension);
             this.logger.debug('Reflector UI extension registered');
-
-            // Register error modal UI extension
-            uiExtensionManager.registerUIExtension(errorModalExtension);
-            this.logger.debug('Error modal UI extension registered');
         } catch (error) {
             const errorMsg = `Failed to register UI extensions: ${error}`;
             this.logger.error(errorMsg);

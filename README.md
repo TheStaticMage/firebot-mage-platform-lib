@@ -78,10 +78,14 @@ The library uses semantic versioning. Breaking changes to the IPC protocol will 
 - **[User Guide](doc/user-guide.md)** - How to use platform-aware features in your Firebot setup
 - **[Integration Developer Guide](doc/integration-guide.md)** - For developers creating platform integrations
 - **[API Reference](doc/api.md)** - Complete IPC protocol and interface documentation
+- **[Reusable Utilities Guide](INTEGRATION_GUIDE.md)** - Using `@thestaticmage/mage-platform-lib-client` in your integrations
 
 ## For Integration Developers
 
-If you're developing a platform integration that uses this library, see the [Integration Developer Guide](doc/integration-guide.md) for details on implementing the required IPC handlers and operation contracts.
+If you're developing a platform integration that uses this library:
+
+- See the **[Reusable Utilities Guide](INTEGRATION_GUIDE.md)** for how to use the script loader and reflector factory utilities provided by the client library
+- See the **[Integration Developer Guide](doc/integration-guide.md)** for details on implementing the required IPC handlers and operation contracts
 
 ## Contributions
 

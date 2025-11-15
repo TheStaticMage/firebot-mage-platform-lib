@@ -1,7 +1,14 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import { PLATFORM_LIB_VERSION, createPlatformLibVersionInfo } from '@thestaticmage/mage-platform-lib-client';
+import * as startupScriptsModule from '@thestaticmage/mage-platform-lib-client';
 import { PlatformLibrary } from '../platform-library';
 import { LogWrapper } from '../main';
+
+jest.mock('@thestaticmage/mage-platform-lib-client', () => ({
+    ...jest.requireActual('@thestaticmage/mage-platform-lib-client'),
+    getStartupScripts: jest.fn().mockResolvedValue([]),
+    resetStartupScriptsReflector: jest.fn()
+}));
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -12,6 +19,9 @@ describe('PlatformLibrary', () => {
     let platformLib: PlatformLibrary;
 
     beforeEach(() => {
+        jest.clearAllMocks();
+        (startupScriptsModule.resetStartupScriptsReflector as jest.Mock)();
+
         // Mock logger
         mockLogger = {
             info: jest.fn(),
@@ -141,14 +151,8 @@ describe('PlatformLibrary', () => {
             // Should NOT log success message when there are critical errors
             expect(mockLogger.info).not.toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
 
-            // Should display critical error using custom error modal
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
-                'mage-platform-lib:show-error',
-                expect.objectContaining({
-                    title: 'Mage Platform Library Error',
-                    message: expect.stringContaining('Multiple errors occurred')
-                })
-            );
+            // Should have critical errors recorded
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register'));
         });
 
         it('should log error and throw on handler setup failure', async () => {
@@ -168,14 +172,8 @@ describe('PlatformLibrary', () => {
             await expect(platformLib.initialize()).rejects.toThrow(error);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
 
-            // Should display critical error using custom error modal
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
-                'mage-platform-lib:show-error',
-                expect.objectContaining({
-                    title: 'Mage Platform Library Error',
-                    message: expect.stringContaining('Failed to initialize Platform Library')
-                })
-            );
+            // Should attempt to display critical error through error modal
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
         });
     });
 

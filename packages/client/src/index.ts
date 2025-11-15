@@ -47,3 +47,30 @@ export {
     deserialize,
     isSerializedMessage
 } from './ipc-serializer';
+
+// Script loading utilities
+export {
+    loadScriptVersion
+} from './script-loader';
+
+// Reflector utilities
+export {
+    ReflectorConfig,
+    ReflectedEvent,
+    createReflector,
+    initializeReflector
+} from './reflector-factory';
+
+// Error modal utilities
+export {
+    ErrorModalConfig,
+    createErrorModal,
+    initializeErrorModal
+} from './error-modal-factory';
+
+// Startup scripts utilities
+export {
+    ScriptManifest,
+    getStartupScripts,
+    resetStartupScriptsReflector
+} from './startup-scripts';
