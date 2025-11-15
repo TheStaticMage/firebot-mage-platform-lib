@@ -36,6 +36,7 @@
         "typescript": "^5.9.3"
     },
     "dependencies": {
+        "@crowbartools/firebot-custom-scripts-types": "github:TheStaticMage/firebot-custom-scripts-types#running",
         "semver": "^7.6.0"
     },
     "files": [
