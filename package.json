@@ -36,5 +36,9 @@
     "dependencies": {
         "@mage-platform-lib/types": "file:./packages/types",
         "semver": "^7.6.0"
+    },
+    "overrides": {
+        "test-exclude": "^7.0.1",
+        "js-yaml": "^4.1.1"
     }
 }
