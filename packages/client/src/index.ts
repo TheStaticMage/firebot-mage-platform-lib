@@ -21,6 +21,11 @@ export {
     checkVersionCompatibility
 } from './version-compatibility';
 
+// Semantic version checking (commonly used for Firebot version validation)
+export {
+    checkSemanticVersion
+} from './semantic-version';
+
 // Operation types
 export {
     PlatformOperation,

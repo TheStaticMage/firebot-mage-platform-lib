@@ -1,6 +1,6 @@
 import { Firebot, RunRequest } from '@crowbartools/firebot-custom-scripts-types';
 import { Logger } from '@crowbartools/firebot-custom-scripts-types/types/modules/logger';
-import { PLATFORM_LIB_VERSION } from '@thestaticmage/mage-platform-lib-client';
+import { PLATFORM_LIB_VERSION, checkSemanticVersion } from '@thestaticmage/mage-platform-lib-client';
 import { IntegrationConstants } from './constants';
 import { PlatformLibrary } from './platform-library';
 
@@ -36,6 +36,13 @@ const script: Firebot.CustomScript<ScriptParameters> = {
         firebot = runRequest;
         const debugMode = typeof runRequest.parameters?.debug === 'boolean' ? runRequest.parameters.debug : false;
         logger = new LogWrapper(runRequest.modules.logger, debugMode);
+
+        // Check Firebot version requirement
+        const firebotVersion = runRequest.firebot?.version;
+        if (!firebotVersion || !checkSemanticVersion(firebotVersion, '>= 5.65.0')) {
+            logger.error(`Firebot 5.65.0 or higher is required (current: ${firebotVersion || 'unknown'})`);
+            return;
+        }
 
         logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initializing...`);
 

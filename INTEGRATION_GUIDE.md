@@ -4,12 +4,13 @@ This guide documents the reusable utilities available in `@thestaticmage/mage-pl
 
 ## Overview
 
-The client library provides four main utilities to reduce boilerplate code in your integrations:
+The client library provides five main utilities to reduce boilerplate code in your integrations:
 
 1. **Script Version Loader** - Determines the version of installed startup scripts
-2. **Reflector Factory** - Creates a custom reflector for IPC communication between backend and frontend
-3. **Error Modal Factory** - Creates custom error dialogs for displaying messages to users
-4. **Startup Scripts Loader** - Retrieves the list of Firebot startup scripts (manages its own reflector singleton)
+2. **Firebot Version Checker** - Validates minimum Firebot version requirements
+3. **Reflector Factory** - Creates a custom reflector for IPC communication between backend and frontend
+4. **Error Modal Factory** - Creates custom error dialogs for displaying messages to users
+5. **Startup Scripts Loader** - Retrieves the list of Firebot startup scripts (manages its own reflector singleton)
 
 ## Script Version Loader
 
@@ -68,6 +69,63 @@ export default {
 ### How It Works
 
 The function reads bundled webpack script files from disk and uses `eval()` to execute them, extracting the `getScriptManifest()` function to get version information. This workaround is necessary because Firebot doesn't expose version information through its public APIs.
+
+## Semantic Version Checker
+
+### Purpose
+
+The semantic version checker validates that a version satisfies a given semver requirement. This is a generic utility that can be used for any semantic versioning comparison. Common use case: checking Firebot version requirements.
+
+### API
+
+```typescript
+function checkSemanticVersion(currentVersion: string, versionRange: string): boolean
+```
+
+### Parameters
+
+- **currentVersion** - Current version (e.g., `"5.70.0"`)
+- **versionRange** - Semver version range (e.g., `">= 5.65.0"`, `"^5.65.0"`, `"5.65.0 - 6.0.0"`)
+
+### Returns
+
+`true` if the current version satisfies the version range, `false` otherwise.
+
+### Example: Checking Firebot Version
+
+```typescript
+import { checkSemanticVersion } from '@thestaticmage/mage-platform-lib-client';
+
+export default {
+    run: async (runRequest) => {
+        const currentVersion = runRequest.firebot?.version; // e.g., "5.70.0"
+
+        if (!checkSemanticVersion(currentVersion, '>= 5.65.0')) {
+            console.warn('Firebot 5.65.0 or higher is required');
+            console.warn('Some features may not be available');
+            return;
+        }
+
+        console.log('Firebot version meets requirements');
+    }
+};
+```
+
+### Supported Range Formats
+
+- **Greater/Less Than**: `">= 5.65.0"`, `"< 6.0.0"`, `"> 5.0.0 <= 6.0.0"`
+- **Caret Ranges**: `"^5.65.0"` (allows changes that do not modify left-most non-zero digit)
+- **Tilde Ranges**: `"~5.65.0"` (allows patch-level changes)
+- **Hyphenated Ranges**: `"5.65.0 - 6.0.0"` (inclusive on both ends)
+- **Exact Versions**: `"5.65.0"` (only this exact version)
+
+### Features
+
+- **Semantic Versioning**: Uses semver for accurate version comparison
+- **Flexible Range Syntax**: Supports all standard semver range formats
+- **Format Normalization**: Handles versions with v prefix (e.g., `"v5.65.0"`)
+- **Pre-release Support**: Correctly compares pre-release versions (e.g., `"5.65.0-beta"`)
+- **Error Handling**: Returns `false` for invalid version strings or invalid ranges
 
 ## Error Modal Factory
 
