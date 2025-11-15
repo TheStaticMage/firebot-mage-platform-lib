@@ -3,10 +3,7 @@ import {
     PLATFORM_LIB_VERSION,
     createPlatformLibVersionInfo,
     RegistrationRequest,
-    RegistrationResponse,
-    DeregistrationRequest,
-    DeregistrationResponse,
-    QueryPlatformsResponse
+    DeregistrationRequest
 } from '@mage-platform-lib/types';
 import { LogWrapper } from './main';
 import { IntegrationDetector } from './integration-detector';
@@ -100,9 +97,9 @@ export class PlatformLibrary {
         backendCommunicator.on(
             'platform-lib:register-integration',
             (request: RegistrationRequest) => {
-                this.logger.debug(`Registration request from ${request.integration.integrationId}`);
-
                 try {
+                    this.logger.debug(`Registration request from ${request.integration.integrationId}`);
+
                     this.integrationDetector.registerIntegration({
                         integrationId: request.integration.integrationId,
                         integrationName: request.integration.integrationName,
@@ -112,7 +109,7 @@ export class PlatformLibrary {
                     this.logger.info(`Integration registered: ${request.integration.integrationId}`);
                     return { success: true };
                 } catch (error) {
-                    this.logger.error(`Failed to register integration ${request.integration.integrationId}: ${error}`);
+                    this.logger.error(`Failed to register integration: ${error}`);
                     return {
                         success: false,
                         error: error instanceof Error ? error.message : String(error)
@@ -125,14 +122,14 @@ export class PlatformLibrary {
         backendCommunicator.on(
             'platform-lib:deregister-integration',
             (request: DeregistrationRequest) => {
-                this.logger.debug(`Deregistration request from ${request.integrationId}`);
-
                 try {
+                    this.logger.debug(`Deregistration request from ${request.integrationId}`);
+
                     this.integrationDetector.deregisterIntegration(request.integrationId);
                     this.logger.info(`Integration deregistered: ${request.integrationId}`);
                     return { success: true };
                 } catch (error) {
-                    this.logger.error(`Failed to deregister integration ${request.integrationId}: ${error}`);
+                    this.logger.error(`Failed to deregister integration: ${error}`);
                     return {
                         success: false,
                         error: error instanceof Error ? error.message : String(error)

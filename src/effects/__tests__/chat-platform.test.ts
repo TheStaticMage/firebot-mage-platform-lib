@@ -639,5 +639,88 @@ describe('chat-platform effect', () => {
 
             expect(replyId).toBeUndefined();
         });
+
+        it('should return undefined when metadata is null', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'never',
+                twitchReply: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                unknownSend: 'none'
+            };
+
+            const trigger: Trigger = {
+                type: 'manual',
+                metadata: null as any
+            };
+
+            const replyId = getReplyIdForPlatform('twitch', trigger, effect);
+
+            expect(replyId).toBeUndefined();
+        });
+
+        it('should return reply ID from chatMessage.id when messageId is not available', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'never',
+                twitchReply: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                unknownSend: 'none'
+            };
+
+            const trigger: Trigger = {
+                type: 'event',
+                metadata: {
+                    username: 'testuser',
+                    chatMessage: {
+                        id: 'msg-789',
+                        username: 'testuser'
+                    }
+                }
+            };
+
+            const replyId = getReplyIdForPlatform('twitch', trigger, effect);
+
+            expect(replyId).toBe('msg-789');
+        });
+
+        it('should return reply ID from eventData.id when messageId is not available', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'never',
+                twitchReply: false,
+                kickMessage: 'test',
+                kickSend: 'never',
+                kickReply: true,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                unknownSend: 'none'
+            };
+
+            const trigger: Trigger = {
+                type: 'event',
+                metadata: {
+                    username: 'testuser',
+                    eventData: {
+                        id: 'evt-999'
+                    }
+                }
+            };
+
+            const replyId = getReplyIdForPlatform('kick', trigger, effect);
+
+            expect(replyId).toBe('evt-999');
+        });
     });
 });
