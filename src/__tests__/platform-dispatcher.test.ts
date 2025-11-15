@@ -227,27 +227,38 @@ describe('PlatformDispatcher', () => {
         });
 
         it('should timeout if IPC takes too long', async () => {
-            const request: SendChatMessageRequest = { message: 'Hello' };
+            jest.useFakeTimers();
 
-            (mockIntegrationDetector.isIntegrationDetected as jest.Mock).mockReturnValue(true);
-            (mockIntegrationDetector.getDetectedIntegrationInfo as jest.Mock).mockReturnValue({
-                scriptName: 'Kick Integration',
-                version: '0.6.2'
-            });
+            try {
+                const request: SendChatMessageRequest = { message: 'Hello' };
 
-            // Mock a delayed response
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockImplementation(
-                () => new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve({ success: true });
-                    }, 15000);
-                })
-            );
+                (mockIntegrationDetector.isIntegrationDetected as jest.Mock).mockReturnValue(true);
+                (mockIntegrationDetector.getDetectedIntegrationInfo as jest.Mock).mockReturnValue({
+                    scriptName: 'Kick Integration',
+                    version: '0.6.2'
+                });
 
-            await expect(
-                dispatcher.dispatchToIntegration('kick', 'send-chat-message', request)
-            ).rejects.toThrow('IPC timeout');
-        }, 12000); // Extend test timeout
+                // Mock a delayed response that never resolves in time
+                (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockImplementation(
+                    () => new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve({ success: true });
+                        }, 15000);
+                    })
+                );
+
+                const dispatchPromise = dispatcher.dispatchToIntegration('kick', 'send-chat-message', request);
+
+                // Fast-forward past the 10 second timeout
+                jest.advanceTimersByTime(10001);
+
+                await expect(dispatchPromise).rejects.toThrow('IPC timeout');
+            } finally {
+                jest.useRealTimers();
+                // Clear any pending timers
+                jest.clearAllTimers();
+            }
+        });
 
         it('should dispatch to YouTube integration', async () => {
             const request: SendChatMessageRequest = { message: 'Hello YouTube' };
