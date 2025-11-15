@@ -22,6 +22,7 @@ export class PlatformLibrary {
     private debug: boolean;
     private integrationDetector: IntegrationDetector;
     private platformDispatcher: PlatformDispatcher;
+    private criticalErrors: string[] = [];
 
     constructor(logger: LogWrapper, modules: ScriptModules, debug = false) {
         this.logger = logger;
@@ -47,6 +48,7 @@ export class PlatformLibrary {
      */
     async initialize(): Promise<void> {
         this.logger.info('Initializing Platform Library...');
+        this.criticalErrors = [];
 
         try {
             // Set up IPC handlers
@@ -57,9 +59,35 @@ export class PlatformLibrary {
             this.registerFeatures();
 
             this.logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
+
+            // Display critical errors if any occurred
+            this.displayCriticalErrors();
         } catch (error) {
             this.logger.error(`Failed to initialize Platform Library: ${error}`);
+            this.sendCriticalErrorNotification(`Failed to initialize Platform Library: ${error}`);
             throw error;
+        }
+    }
+
+    /**
+     * Send a critical error notification to the user via modal
+     */
+    private sendCriticalErrorNotification(message: string): void {
+        const { frontendCommunicator } = this.modules;
+        frontendCommunicator.send('error', `Platform Library: ${message}`);
+        this.logger.info(`Critical error notification sent: ${message}`);
+    }
+
+    /**
+     * Display critical errors that occurred during initialization
+     */
+    private displayCriticalErrors(): void {
+        if (this.criticalErrors.length > 0) {
+            const errorMessage = this.criticalErrors.length === 1
+                ? this.criticalErrors[0]
+                : `Multiple errors occurred:\n\n${this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`;
+
+            this.sendCriticalErrorNotification(errorMessage);
         }
     }
 
@@ -144,7 +172,9 @@ export class PlatformLibrary {
             this.logger.debug('Registered platform variable');
             successCount++;
         } catch (error) {
-            this.logger.error(`Failed to register platform variable: ${error}`);
+            const errorMsg = `Failed to register platform variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform variable registration failed. This may indicate an incompatible integration is installed. ${error}`);
             failureCount++;
         }
 
@@ -158,7 +188,9 @@ export class PlatformLibrary {
             this.logger.debug('Registered platform-aware user display name variable');
             successCount++;
         } catch (error) {
-            this.logger.error(`Failed to register platform-aware user display name variable: ${error}`);
+            const errorMsg = `Failed to register platform-aware user display name variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform-aware user display name variable registration failed. ${error}`);
             failureCount++;
         }
 
@@ -168,7 +200,9 @@ export class PlatformLibrary {
             this.logger.debug('Registered platform filter');
             successCount++;
         } catch (error) {
-            this.logger.error(`Failed to register platform filter: ${error}`);
+            const errorMsg = `Failed to register platform filter: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform filter registration failed. ${error}`);
             failureCount++;
         }
 
@@ -178,7 +212,9 @@ export class PlatformLibrary {
             this.logger.debug('Registered platform condition');
             successCount++;
         } catch (error) {
-            this.logger.error(`Failed to register platform condition: ${error}`);
+            const errorMsg = `Failed to register platform condition: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform condition registration failed. ${error}`);
             failureCount++;
         }
 
@@ -188,7 +224,9 @@ export class PlatformLibrary {
             this.logger.debug('Registered platform restriction');
             successCount++;
         } catch (error) {
-            this.logger.error(`Failed to register platform restriction: ${error}`);
+            const errorMsg = `Failed to register platform restriction: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform restriction registration failed. ${error}`);
             failureCount++;
         }
 
@@ -204,7 +242,9 @@ export class PlatformLibrary {
             this.logger.debug('Registered platform-aware chat effect');
             successCount++;
         } catch (error) {
-            this.logger.error(`Failed to register platform-aware chat effect: ${error}`);
+            const errorMsg = `Failed to register platform-aware chat effect: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform-aware chat effect registration failed. ${error}`);
             failureCount++;
         }
 

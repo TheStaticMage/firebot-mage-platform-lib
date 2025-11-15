@@ -26,7 +26,8 @@ describe('PlatformLibrary', () => {
             on: jest.fn((event: string, handler: (...args: any[]) => any) => {
                 handlers.set(event, handler);
             }),
-            fireEventAsync: jest.fn()
+            fireEventAsync: jest.fn(),
+            send: jest.fn()
         };
 
         // Helper to get registered handler
@@ -93,6 +94,9 @@ describe('PlatformLibrary', () => {
             expect(mockModules.restrictionManager.registerRestriction).toHaveBeenCalledTimes(1);
             // Should register 1 effect
             expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(1);
+
+            // Should not display error modal when successful
+            expect(mockFrontendCommunicator.send).not.toHaveBeenCalledWith('error', expect.anything());
         });
 
         it('should handle feature registration failures gracefully', async () => {
@@ -114,6 +118,10 @@ describe('PlatformLibrary', () => {
 
             // Should still complete initialization
             expect(mockLogger.info).toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
+
+            // Should display critical error modal
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Platform Library:'));
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Multiple errors occurred'));
         });
 
         it('should log error and throw on handler setup failure', async () => {
@@ -124,6 +132,10 @@ describe('PlatformLibrary', () => {
 
             await expect(platformLib.initialize()).rejects.toThrow(error);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
+
+            // Should display critical error modal
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Platform Library:'));
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Failed to initialize Platform Library'));
         });
     });
 
