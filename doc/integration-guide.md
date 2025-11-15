@@ -5,7 +5,7 @@ This guide is for developers creating platform integrations (like Kick or YouTub
 ## Overview
 
 The Platform Library provides a standardized way for platform integrations to:
-- Register themselves with the library
+
 - Receive platform-specific operations (send chat, get user info, etc.)
 - Integrate seamlessly with platform-aware effects and variables
 
@@ -15,11 +15,9 @@ The Platform Library provides a standardized way for platform integrations to:
 - Platform Library v1.0.0 or later installed
 - Basic understanding of Firebot custom scripts and integrations
 
-## Integration Registration Protocol
+## Check for Platform Library
 
-### Step 1: Check for Platform Library
-
-Before registering, verify the Platform Library is installed and compatible:
+Verify the Platform Library is installed and compatible:
 
 ```typescript
 import { checkVersionCompatibility } from '@mage-platform-lib/types';
@@ -49,78 +47,6 @@ async function checkPlatformLib(frontendCommunicator: any, logger: any): Promise
     } catch (error) {
         logger.error(`Failed to detect Platform Library: ${error}`);
         return false;
-    }
-}
-```
-
-### Step 2: Register Your Integration
-
-Register during your integration's initialization:
-
-```typescript
-import { RegistrationRequest } from '@mage-platform-lib/types';
-
-async function registerWithPlatformLib(
-    frontendCommunicator: any,
-    logger: any
-): Promise<void> {
-    const registrationRequest: RegistrationRequest = {
-        integration: {
-            integrationId: 'kick', // or 'youtube', etc.
-            integrationName: 'mage-kick-integration',
-            platformLibVersion: '^1.0.0',
-            supportedOperations: [
-                'send-chat-message',
-                'get-user-display-name',
-                'ban-user',
-                'timeout-user',
-                'set-stream-title',
-                'set-stream-category'
-            ]
-        }
-    };
-
-    try {
-        const response = await frontendCommunicator.fireEventAsync(
-            'platform-lib:register-integration',
-            registrationRequest
-        );
-
-        if (response && response.success) {
-            logger.info('Successfully registered with Platform Library');
-        } else {
-            throw new Error(response?.error || 'Registration failed');
-        }
-    } catch (error) {
-        logger.error(`Failed to register with Platform Library: ${error}`);
-        throw error;
-    }
-}
-```
-
-### Step 3: Deregister on Shutdown
-
-Clean up when your integration disconnects:
-
-```typescript
-import { DeregistrationRequest } from '@mage-platform-lib/types';
-
-async function deregisterFromPlatformLib(
-    frontendCommunicator: any,
-    logger: any
-): Promise<void> {
-    const request: DeregistrationRequest = {
-        integrationId: 'kick'
-    };
-
-    try {
-        await frontendCommunicator.fireEventAsync(
-            'platform-lib:deregister-integration',
-            request
-        );
-        logger.info('Deregistered from Platform Library');
-    } catch (error) {
-        logger.error(`Failed to deregister: ${error}`);
     }
 }
 ```
@@ -198,101 +124,6 @@ function registerGetUserDisplayNameHandler(
 }
 ```
 
-### Moderation Operations
-
-```typescript
-import { BanUserRequest, TimeoutUserRequest, ModerationResponse } from '@mage-platform-lib/types';
-
-function registerModerationHandlers(
-    backendCommunicator: any,
-    userApi: any,
-    logger: any
-): void {
-    // Ban user (permanent)
-    backendCommunicator.on(
-        'mage-kick-integration:ban-user',
-        async (request: BanUserRequest): Promise<ModerationResponse> => {
-            try {
-                await userApi.banUserByUsername(request.username, 0); // 0 = permanent
-                return { success: true };
-            } catch (error) {
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error)
-                };
-            }
-        }
-    );
-
-    // Timeout user (temporary)
-    backendCommunicator.on(
-        'mage-kick-integration:timeout-user',
-        async (request: TimeoutUserRequest): Promise<ModerationResponse> => {
-            try {
-                await userApi.banUserByUsername(
-                    request.username,
-                    request.durationMinutes
-                );
-                return { success: true };
-            } catch (error) {
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error)
-                };
-            }
-        }
-    );
-}
-```
-
-### Stream Management Operations
-
-```typescript
-import {
-    SetStreamTitleRequest,
-    SetStreamCategoryRequest,
-    StreamManagementResponse
-} from '@mage-platform-lib/types';
-
-function registerStreamHandlers(
-    backendCommunicator: any,
-    streamApi: any,
-    logger: any
-): void {
-    // Set stream title
-    backendCommunicator.on(
-        'mage-kick-integration:set-stream-title',
-        async (request: SetStreamTitleRequest): Promise<StreamManagementResponse> => {
-            try {
-                await streamApi.setStreamTitle(request.title);
-                return { success: true };
-            } catch (error) {
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error)
-                };
-            }
-        }
-    );
-
-    // Set stream category
-    backendCommunicator.on(
-        'mage-kick-integration:set-stream-category',
-        async (request: SetStreamCategoryRequest): Promise<StreamManagementResponse> => {
-            try {
-                await streamApi.setStreamCategory(request.categoryId);
-                return { success: true };
-            } catch (error) {
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error)
-                };
-            }
-        }
-    );
-}
-```
-
 ## Complete Integration Example
 
 Here's a complete example of integration initialization:
@@ -339,8 +170,6 @@ export class MyPlatformIntegration {
         // Register all your operation handlers here
         registerSendChatHandler(backendCommunicator, this.chatManager, modules.logger);
         registerGetUserDisplayNameHandler(backendCommunicator, this.userManager, modules.logger);
-        registerModerationHandlers(backendCommunicator, this.userApi, modules.logger);
-        registerStreamHandlers(backendCommunicator, this.streamApi, modules.logger);
     }
 
     // ... checkPlatformLib, registerWithPlatformLib, deregisterFromPlatformLib methods
@@ -360,6 +189,7 @@ export class MyPlatformIntegration {
 ## Error Handling
 
 All operation handlers should:
+
 1. Catch all errors
 2. Return `{ success: false, error: "message" }` on failure
 3. Log errors with appropriate detail
@@ -369,9 +199,8 @@ All operation handlers should:
 
 1. **Install Platform Library**: Ensure it's loaded as a startup script
 2. **Enable Debug Mode**: Turn on debug logging in both the library and your integration
-3. **Check Registration**: Look for "Integration registered: {platform}" in logs
-4. **Test Operations**: Create effects using platform-aware features
-5. **Verify Dispatch**: Check logs for dispatch calls to your handlers
+3. **Test Operations**: Create effects using platform-aware features
+4. **Verify Dispatch**: Check logs for dispatch calls to your handlers
 
 ## Version Compatibility
 
@@ -382,6 +211,7 @@ Your integration should specify compatible Platform Library versions using seman
 - `1.0.0` - Exact version only (not recommended)
 
 The Platform Library uses the following version policy:
+
 - **Major version** changes break the IPC protocol (requires integration updates)
 - **Minor version** adds new features (backward compatible)
 - **Patch version** fixes bugs (backward compatible)

@@ -1,3 +1,4 @@
+import { PLATFORM_LIB_VERSION } from '../version';
 import { checkVersionCompatibility, PLATFORM_LIB_MIN_VERSION } from '../version-compatibility';
 
 describe('checkVersionCompatibility', () => {
@@ -143,11 +144,9 @@ describe('checkVersionCompatibility', () => {
         });
 
         it('should use PLATFORM_LIB_MIN_VERSION constant', () => {
-            expect(PLATFORM_LIB_MIN_VERSION).toBe('1.0.0');
-
             const result = checkVersionCompatibility(
-                `^${PLATFORM_LIB_MIN_VERSION}`,
-                '1.5.0'
+                `>=${PLATFORM_LIB_MIN_VERSION}`,
+                PLATFORM_LIB_VERSION
             );
             expect(result.compatible).toBe(true);
         });

@@ -27,6 +27,7 @@ interface IntegrationMapping {
     platformId: string;
     manifestName: string;
     scriptId: string;
+    semverRange: string;
 }
 
 /**
@@ -36,12 +37,14 @@ const KNOWN_INTEGRATIONS: IntegrationMapping[] = [
     {
         platformId: 'kick',
         manifestName: 'Kick Integration',
-        scriptId: 'firebot-mage-kick-integration'
+        scriptId: 'firebot-mage-kick-integration',
+        semverRange: '>= 0.7.0'
     },
     {
         platformId: 'youtube',
         manifestName: 'YouTube Integration',
-        scriptId: 'firebot-mage-youtube-integration'
+        scriptId: 'firebot-mage-youtube-integration',
+        semverRange: '>= 0.0.1'
     }
 ];
 
@@ -63,9 +66,10 @@ export class IntegrationDetector {
      */
     async detectInstalledIntegrations(): Promise<void> {
         this.logger.debug('Scanning for installed integrations...');
+        const { frontendCommunicator } = this.modules;
 
         try {
-            const scripts = await this.modules.frontendCommunicator.fireEventAsync<ScriptManifest[]>('getStartupScripts', null);
+            const scripts = await frontendCommunicator.fireEventAsync<ScriptManifest[]>('getStartupScripts', null);
 
             if (!scripts || !Array.isArray(scripts)) {
                 this.logger.warn('No startup scripts returned from Firebot');
@@ -175,32 +179,6 @@ export class IntegrationDetector {
         }
 
         return result;
-    }
-
-    /**
-     * Manually register an integration (called via IPC)
-     * @param integration Integration metadata
-     */
-    registerIntegration(integration: { integrationId: string; integrationName: string; version: string }): void {
-        this.detectedIntegrations.set(integration.integrationId, {
-            scriptName: integration.integrationName,
-            version: integration.version,
-            scriptId: integration.integrationName
-        });
-        this.logger.info(`Manually registered integration: ${integration.integrationId} v${integration.version}`);
-    }
-
-    /**
-     * Manually deregister an integration (called via IPC)
-     * @param integrationId Platform ID to remove
-     */
-    deregisterIntegration(integrationId: string): void {
-        if (this.detectedIntegrations.has(integrationId)) {
-            this.detectedIntegrations.delete(integrationId);
-            this.logger.info(`Deregistered integration: ${integrationId}`);
-        } else {
-            this.logger.warn(`Attempted to deregister unknown integration: ${integrationId}`);
-        }
     }
 
     /**

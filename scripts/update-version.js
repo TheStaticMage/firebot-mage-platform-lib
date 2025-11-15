@@ -1,7 +1,7 @@
 /* eslint-disable global-require */
 /* eslint-disable import/no-dynamic-require */
 /**
- *  Copies the built script .js to Firebot's scripts folder
+ *  Updates PLATFORM_LIB_VERSION to match package.json version
  */
 const fs = require('fs').promises;
 const path = require('path');
@@ -14,19 +14,19 @@ const main = async () => {
 
     console.log(`Current version: ${version}`);
 
-    const mainFilePath = path.resolve('./src/main.ts');
+    const versionFilePath = path.resolve('./packages/types/src/version.ts');
 
-    const updateScriptVersion = async (filePath, version) => {
+    const updatePlatformVersion = async (filePath, version) => {
         const fileContent = await fs.readFile(filePath, 'utf8');
         const updatedContent = fileContent.replace(
-            /const scriptVersion = '.*?';/,
-            `const scriptVersion = '${version}';`
+            /export const PLATFORM_LIB_VERSION = ".*?";/,
+            `export const PLATFORM_LIB_VERSION = "${version}";`
         );
         await fs.writeFile(filePath, updatedContent, 'utf8');
     };
 
-    await updateScriptVersion(mainFilePath, version);
-    console.log(`Successfully updated the version in ${mainFilePath}.`);
+    await updatePlatformVersion(versionFilePath, version);
+    console.log(`Successfully updated PLATFORM_LIB_VERSION in ${versionFilePath}.`);
 };
 
 main();

@@ -14,7 +14,7 @@ interface ScriptParameters extends Record<string, unknown> {
 const script: Firebot.CustomScript<ScriptParameters> = {
     getScriptManifest: () => {
         return {
-            name: 'Platform Library',
+            name: 'TheStaticMage Multi-Platform Library',
             description: 'Shared platform-aware logic for multi-platform streaming',
             author: 'The Static Mage',
             version: PLATFORM_LIB_VERSION,

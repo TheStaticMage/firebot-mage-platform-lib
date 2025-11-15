@@ -32,13 +32,13 @@ jobs:
             exit 1
           fi
           echo "package.json version is ${{ steps.package-version.outputs.current-version }}"
-          script_version=$(grep '^export const scriptVersion = ' src/main.ts | cut -d"'" -f2)
-          echo "script version is $script_version"
-          if [ "${{ steps.package-version.outputs.current-version }}" != "$script_version" ]; then
-            echo "Version in package.json does not match version in src/main.ts"
+          platform_version=$(grep '^export const PLATFORM_LIB_VERSION = ' packages/types/src/version.ts | cut -d'"' -f2)
+          echo "PLATFORM_LIB_VERSION is $platform_version"
+          if [ "${{ steps.package-version.outputs.current-version }}" != "$platform_version" ]; then
+            echo "Version in package.json does not match PLATFORM_LIB_VERSION in packages/types/src/version.ts"
             exit 1
           fi
-          echo "Version in package.json matches version in src/main.ts"
+          echo "Version in package.json matches PLATFORM_LIB_VERSION"
       - name: release
         uses: actions/create-release@v1
         id: create_release

@@ -34,10 +34,6 @@ export {
 // Registry types
 export {
     DetectedIntegration,
-    RegistrationRequest,
-    RegistrationResponse,
-    DeregistrationRequest,
-    DeregistrationResponse,
     QueryPlatformsResponse
 } from './registry';
 
