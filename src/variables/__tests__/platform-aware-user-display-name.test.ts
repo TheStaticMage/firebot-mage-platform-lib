@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { GetUserDisplayNameResponse } from '@mage-platform-lib/client';
+import { GetUserDisplayNameResponse } from '@thestaticmage/mage-platform-lib-client';
 import { PlatformDispatcher } from '../../platform-dispatcher';
 import { LogWrapper } from '../../main';
 import { createPlatformAwareUserDisplayNameVariable } from '../platform-aware-user-display-name';
