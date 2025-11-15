@@ -43,6 +43,17 @@
 - Backend-to-backend: Must be reflected through frontend using the reflector pattern.
 - Effect option controllers: Run in Angular frontend, so they DO have access to `backendCommunicator`.
 
+**When to Use IPC vs Direct Access:**
+
+- Use IPC only if necessary: communicating with Firebot methods not exposed via `RunRequest` or communicating with other integrations.
+- Prefer direct access: When data is available through `RunRequest` (e.g., `scriptDataDir`), use it directly instead of IPC round-trips.
+- Example: `IntegrationDetector.loadScriptVersion()` uses direct `require()` loading via `scriptDataDir` instead of IPC to `frontendCommunicator.fireEventAsync()`.
+
+**Firebot Modifications:**
+
+- NEVER modify Firebot code unless explicitly discussed and approved. Platform library must work with Firebot as-is.
+- Exception: If Firebot changes are necessary, document the change and PR requirement in this file.
+
 ## Testing
 
 - Unit tests: Use Jest, place in `__tests__` under function location.

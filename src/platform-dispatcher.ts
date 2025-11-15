@@ -8,29 +8,22 @@ import {
 } from '@mage-platform-lib/types';
 import { IntegrationDetector } from './integration-detector';
 import { LogWrapper } from './main';
-
-/**
- * Default timeout for IPC operations (10 seconds)
- */
-const IPC_TIMEOUT_MS = 10000;
+import { reflectEvent } from './reflector';
 
 /**
  * Platform dispatcher handles routing operations to Twitch or integrations
  */
 export class PlatformDispatcher {
     private integrationDetector: IntegrationDetector;
-    private frontendCommunicator: ScriptModules['frontendCommunicator'];
     private modules: ScriptModules;
     private logger: LogWrapper;
 
     constructor(
         integrationDetector: IntegrationDetector,
-        frontendCommunicator: ScriptModules['frontendCommunicator'],
         modules: ScriptModules,
         logger: LogWrapper
     ) {
         this.integrationDetector = integrationDetector;
-        this.frontendCommunicator = frontendCommunicator;
         this.modules = modules;
         this.logger = logger;
     }
@@ -109,30 +102,13 @@ export class PlatformDispatcher {
 
         this.logger.debug(`Dispatching to integration via IPC: ${eventName}`);
 
-        // Create timeout promise with clearable timeout
-        let timeoutId: NodeJS.Timeout | undefined;
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            timeoutId = setTimeout(() => {
-                reject(new Error(`IPC timeout: ${eventName} did not respond within ${IPC_TIMEOUT_MS}ms`));
-            }, IPC_TIMEOUT_MS);
-        });
-
         try {
-            // Race between IPC call and timeout
-            const response = await Promise.race([
-                this.frontendCommunicator.fireEventAsync<TResponse>(eventName, request),
-                timeoutPromise
-            ]);
-
+            // Use reflector to communicate with integration backend script through frontend
+            const response = await reflectEvent<TResponse>(eventName, request, true);
             return response;
         } catch (error) {
             this.logger.error(`IPC dispatch failed for ${eventName}: ${error}`);
             throw error;
-        } finally {
-            // Always clear the timeout to prevent memory leaks
-            if (timeoutId !== undefined) {
-                clearTimeout(timeoutId);
-            }
         }
     }
 

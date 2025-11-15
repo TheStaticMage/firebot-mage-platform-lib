@@ -25,6 +25,13 @@ describe('PlatformLibrary', () => {
         mockFrontendCommunicator = {
             on: jest.fn((event: string, handler: (...args: any[]) => any) => {
                 handlers.set(event, handler);
+                // Simulate reflector and error modal initialization completing after a short delay
+                if (event === 'mage-platform-lib:reflector-ready' || event === 'mage-platform-lib:error-modal-ready') {
+                    setImmediate(() => handler());
+                }
+            }),
+            onAsync: jest.fn((event: string, handler: (...args: any[]) => Promise<any>) => {
+                handlers.set(event, handler);
             }),
             fireEventAsync: jest.fn().mockResolvedValue([]),
             send: jest.fn()
@@ -33,9 +40,19 @@ describe('PlatformLibrary', () => {
         // Helper to get registered handler
         mockFrontendCommunicator.getHandler = (event: string) => handlers.get(event);
 
+        // Mock path module
+        const pathModule = {
+            resolve: jest.fn((...args: string[]) => args.join('/')),
+            join: jest.fn((...args: string[]) => args.join('/'))
+        };
+
         // Mock modules
         mockModules = {
             frontendCommunicator: mockFrontendCommunicator,
+            path: pathModule,
+            uiExtensionManager: {
+                registerUIExtension: jest.fn()
+            },
             replaceVariableManager: {
                 registerReplaceVariable: jest.fn()
             },
@@ -53,17 +70,22 @@ describe('PlatformLibrary', () => {
             },
             integrationManager: {
                 getIntegrationDefinitionById: jest.fn()
+            },
+            twitchChat: {
+                sendChatMessage: jest.fn()
+            },
+            userDb: {
+                getTwitchUserByUsername: jest.fn()
             }
         } as unknown as ScriptModules;
 
-        platformLib = new PlatformLibrary(mockLogger, mockModules, false);
+        platformLib = new PlatformLibrary(mockLogger, mockModules, '/mock/script-data/test', false);
     });
 
     describe('initialize', () => {
         it('should initialize successfully', async () => {
             await platformLib.initialize();
 
-            expect(mockLogger.info).toHaveBeenCalledWith('Initializing Platform Library...');
             expect(mockLogger.info).toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
         });
 
@@ -119,23 +141,41 @@ describe('PlatformLibrary', () => {
             // Should NOT log success message when there are critical errors
             expect(mockLogger.info).not.toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
 
-            // Should display critical error modal with updated branding
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Mage Platform Library:'));
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Multiple errors occurred'));
+            // Should display critical error using custom error modal
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'mage-platform-lib:show-error',
+                expect.objectContaining({
+                    title: 'Mage Platform Library Error',
+                    message: expect.stringContaining('Multiple errors occurred')
+                })
+            );
         });
 
         it('should log error and throw on handler setup failure', async () => {
             const error = new Error('Test initialization error');
-            mockFrontendCommunicator.on.mockImplementation(() => {
-                throw error;
+            const handlers = new Map<string, (...args: any[]) => any>();
+            mockFrontendCommunicator.on.mockImplementation((event: string, handler: (...args: any[]) => any) => {
+                handlers.set(event, handler);
+                // Still need to simulate reflector-ready even when other handlers fail
+                if (event === 'mage-platform-lib:reflector-ready' || event === 'mage-platform-lib:error-modal-ready') {
+                    setImmediate(() => handler());
+                } else {
+                    // Only throw for platform handlers, not for reflector/error-modal ready
+                    throw error;
+                }
             });
 
             await expect(platformLib.initialize()).rejects.toThrow(error);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
 
-            // Should display critical error modal with updated branding
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Mage Platform Library:'));
-            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith('error', expect.stringContaining('Failed to initialize Platform Library'));
+            // Should display critical error using custom error modal
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'mage-platform-lib:show-error',
+                expect.objectContaining({
+                    title: 'Mage Platform Library Error',
+                    message: expect.stringContaining('Failed to initialize Platform Library')
+                })
+            );
         });
     });
 
@@ -219,7 +259,7 @@ describe('PlatformLibrary', () => {
 
     describe('debug mode', () => {
         it('should create library with debug enabled', async () => {
-            const debugLib = new PlatformLibrary(mockLogger, mockModules, true);
+            const debugLib = new PlatformLibrary(mockLogger, mockModules, '/mock/script-data/test', true);
             await debugLib.initialize();
 
             expect(mockLogger.debug).toHaveBeenCalled();
