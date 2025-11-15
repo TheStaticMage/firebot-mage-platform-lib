@@ -40,7 +40,7 @@ const script: Firebot.CustomScript<ScriptParameters> = {
         logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initializing...`);
 
         // Initialize Platform Library
-        const platformLib = new PlatformLibrary(logger, runRequest.modules, debugMode);
+        const platformLib = new PlatformLibrary(logger, runRequest.modules, runRequest.scriptDataDir, debugMode);
         await platformLib.initialize();
 
         // Startup scripts don't return anything - they just initialize

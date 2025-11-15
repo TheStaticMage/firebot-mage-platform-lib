@@ -7,6 +7,9 @@ import {
     SendChatMessageRequest,
     GetUserDisplayNameRequest
 } from '@mage-platform-lib/types';
+import { reflectEvent } from '../reflector';
+
+jest.mock('../reflector');
 
 describe('PlatformDispatcher', () => {
     let dispatcher: PlatformDispatcher;
@@ -15,6 +18,8 @@ describe('PlatformDispatcher', () => {
     let mockLogger: LogWrapper;
 
     beforeEach(() => {
+        jest.clearAllMocks();
+
         mockLogger = {
             debug: jest.fn(),
             info: jest.fn(),
@@ -39,9 +44,10 @@ describe('PlatformDispatcher', () => {
             }
         } as unknown as ScriptModules;
 
+        (reflectEvent as jest.Mock).mockResolvedValue({ success: true });
+
         dispatcher = new PlatformDispatcher(
             mockIntegrationDetector,
-            mockModules.frontendCommunicator,
             mockModules,
             mockLogger
         );
@@ -64,15 +70,13 @@ describe('PlatformDispatcher', () => {
                 scriptName: 'Kick Integration',
                 version: '0.6.2'
             });
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue({
-                success: true
-            });
 
             await dispatcher.dispatch('kick', 'send-chat-message', request);
 
-            expect(mockModules.frontendCommunicator.fireEventAsync).toHaveBeenCalledWith(
+            expect(reflectEvent).toHaveBeenCalledWith(
                 'mage-kick-integration:send-chat-message',
-                request
+                request,
+                true
             );
         });
     });
@@ -177,15 +181,13 @@ describe('PlatformDispatcher', () => {
                 scriptName: 'Kick Integration',
                 version: '0.6.2'
             });
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue({
-                success: true
-            });
 
             const result = await dispatcher.dispatchToIntegration('kick', 'send-chat-message', request);
 
-            expect(mockModules.frontendCommunicator.fireEventAsync).toHaveBeenCalledWith(
+            expect(reflectEvent).toHaveBeenCalledWith(
                 'mage-kick-integration:send-chat-message',
-                request
+                request,
+                true
             );
             expect(result).toEqual({ success: true });
         });
@@ -215,7 +217,7 @@ describe('PlatformDispatcher', () => {
                 scriptName: 'Kick Integration',
                 version: '0.6.2'
             });
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockRejectedValue(
+            (reflectEvent as jest.Mock).mockRejectedValue(
                 new Error('IPC failed')
             );
 
@@ -226,38 +228,23 @@ describe('PlatformDispatcher', () => {
             expect(mockLogger.error).toHaveBeenCalled();
         });
 
-        it('should timeout if IPC takes too long', async () => {
-            jest.useFakeTimers();
+        it('should handle timeout errors from reflector', async () => {
+            const request: SendChatMessageRequest = { message: 'Hello' };
 
-            try {
-                const request: SendChatMessageRequest = { message: 'Hello' };
+            (mockIntegrationDetector.isIntegrationDetected as jest.Mock).mockReturnValue(true);
+            (mockIntegrationDetector.getDetectedIntegrationInfo as jest.Mock).mockReturnValue({
+                scriptName: 'Kick Integration',
+                version: '0.6.2'
+            });
 
-                (mockIntegrationDetector.isIntegrationDetected as jest.Mock).mockReturnValue(true);
-                (mockIntegrationDetector.getDetectedIntegrationInfo as jest.Mock).mockReturnValue({
-                    scriptName: 'Kick Integration',
-                    version: '0.6.2'
-                });
+            // Mock reflectEvent to throw a timeout error
+            (reflectEvent as jest.Mock).mockRejectedValue(
+                new Error('Reflect event timeout')
+            );
 
-                // Mock a delayed response that never resolves in time
-                (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockImplementation(
-                    () => new Promise((resolve) => {
-                        setTimeout(() => {
-                            resolve({ success: true });
-                        }, 15000);
-                    })
-                );
-
-                const dispatchPromise = dispatcher.dispatchToIntegration('kick', 'send-chat-message', request);
-
-                // Fast-forward past the 10 second timeout
-                jest.advanceTimersByTime(10001);
-
-                await expect(dispatchPromise).rejects.toThrow('IPC timeout');
-            } finally {
-                jest.useRealTimers();
-                // Clear any pending timers
-                jest.clearAllTimers();
-            }
+            await expect(
+                dispatcher.dispatchToIntegration('kick', 'send-chat-message', request)
+            ).rejects.toThrow('Reflect event timeout');
         });
 
         it('should dispatch to YouTube integration', async () => {
@@ -268,15 +255,13 @@ describe('PlatformDispatcher', () => {
                 scriptName: 'YouTube Integration',
                 version: '0.0.1'
             });
-            (mockModules.frontendCommunicator.fireEventAsync as jest.Mock).mockResolvedValue({
-                success: true
-            });
 
             const result = await dispatcher.dispatchToIntegration('youtube', 'send-chat-message', request);
 
-            expect(mockModules.frontendCommunicator.fireEventAsync).toHaveBeenCalledWith(
+            expect(reflectEvent).toHaveBeenCalledWith(
                 'mage-youtube-integration:send-chat-message',
-                request
+                request,
+                true
             );
             expect(result).toEqual({ success: true });
         });

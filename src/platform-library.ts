@@ -12,6 +12,8 @@ import { PlatformDispatcher } from './platform-dispatcher';
 import { platformRestriction } from './restrictions/platform';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
+import { KNOWN_INTEGRATIONS } from './constants';
+import { reflectorExtension } from './reflector';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -19,25 +21,25 @@ import { createPlatformAwareUserDisplayNameVariable } from './variables/platform
 export class PlatformLibrary {
     private logger: LogWrapper;
     private modules: ScriptModules;
+    private scriptDataDir: string;
     private debug: boolean;
     private integrationDetector: IntegrationDetector;
     private platformDispatcher: PlatformDispatcher;
     private criticalErrors: string[] = [];
 
-    constructor(logger: LogWrapper, modules: ScriptModules, debug = false) {
+    constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string, debug = false) {
         this.logger = logger;
         this.modules = modules;
+        this.scriptDataDir = scriptDataDir;
         this.debug = debug;
 
+        this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}`);
+
         // Initialize core services
-        this.integrationDetector = new IntegrationDetector(
-            modules,
-            logger
-        );
+        this.integrationDetector = new IntegrationDetector(logger, modules, scriptDataDir);
 
         this.platformDispatcher = new PlatformDispatcher(
             this.integrationDetector,
-            modules.frontendCommunicator,
             modules,
             logger
         );
@@ -47,18 +49,29 @@ export class PlatformLibrary {
      * Initialize the platform library
      */
     async initialize(): Promise<void> {
-        this.logger.info('Initializing Platform Library...');
+        this.logger.debug('Initializing Platform Library...');
         this.criticalErrors = [];
+
+        // Register the reflector UI extension for backend-to-backend communication
+        this.registerReflectorExtension();
+
+        // Wait for reflector to be ready before using reflectEvent
+        await this.waitForReflectorReady();
 
         try {
             // Detect installed integrations
+            this.logger.debug('Detecting and validating integrations...');
             await this.detectAndValidateIntegrations();
 
             // Set up IPC handlers
+            this.logger.debug('Setting up verification handlers...');
             this.setupVerificationHandlers();
+
+            this.logger.debug('Setting up dispatch handlers...');
             this.setupDispatchHandlers();
 
             // Register features
+            this.logger.debug('Registering features...');
             this.registerFeatures();
 
             // Only log success if there were no critical errors
@@ -112,19 +125,13 @@ export class PlatformLibrary {
         // Detect installed integrations
         await this.integrationDetector.detectInstalledIntegrations();
 
-        // Get all known integrations from the integration detector
-        const knownIntegrations = [
-            { platformId: 'kick', displayName: 'Kick', semverRange: '>= 0.7.0' },
-            { platformId: 'youtube', displayName: 'YouTube', semverRange: '>= 0.0.1' }
-        ];
-
         // Check each known integration
-        for (const integration of knownIntegrations) {
+        for (const integration of KNOWN_INTEGRATIONS) {
             const info = this.integrationDetector.getDetectedIntegrationInfo(integration.platformId);
 
             if (info) {
                 // Integration found - log version
-                this.logger.info(`Found ${integration.displayName} integration (version: ${info.version || 'unknown'})`);
+                this.logger.debug(`Found ${integration.platformId} integration (version: ${info.version || 'unknown'})`);
 
                 // Check version compatibility
                 if (info.version) {
@@ -134,18 +141,18 @@ export class PlatformLibrary {
                     );
 
                     if (!versionCheck.compatible) {
-                        const errorMsg = `${integration.displayName} integration version ${info.version} is incompatible. ${versionCheck.reason}. Required: ${integration.semverRange}`;
+                        const errorMsg = `${integration.platformId} integration version ${info.version} is incompatible. ${versionCheck.reason}. Required: ${integration.semverRange}`;
                         this.logger.error(errorMsg);
                         this.criticalErrors.push(errorMsg);
                     }
                 } else {
-                    const errorMsg = `${integration.displayName} integration has no version information`;
+                    const errorMsg = `${integration.platformId} integration has no version information`;
                     this.logger.error(errorMsg);
                     this.criticalErrors.push(errorMsg);
                 }
             } else {
                 // Integration not found
-                this.logger.debug(`${integration.displayName} integration not installed`);
+                this.logger.debug(`${integration.platformId} integration not installed`);
             }
         }
     }
@@ -168,6 +175,22 @@ export class PlatformLibrary {
             return PLATFORM_LIB_VERSION;
         });
 
+        // Script manifest handler - loads a custom script and extracts its manifest
+        frontendCommunicator.onAsync('platform-lib:get-script-manifest', async (request: { scriptName: string }) => {
+            if (!request || !request.scriptName) {
+                return { version: undefined };
+            }
+
+            try {
+                // Try to load the script and extract its manifest
+                const scriptManifest = this.loadScriptManifest(request.scriptName);
+                return scriptManifest;
+            } catch (error) {
+                this.logger.debug(`Failed to load manifest for script ${request.scriptName}: ${error}`);
+                return { version: undefined };
+            }
+        });
+
         this.logger.debug('Verification handlers registered');
     }
 
@@ -186,6 +209,9 @@ export class PlatformLibrary {
                 return { platforms };
             }
         );
+
+        // Note: getStartupScripts handler is expected to be provided by Firebot's main backend
+        // The reflector will forward requests to that handler via backendCommunicator
 
         // Dispatch handler - forwards operations to platforms
         frontendCommunicator.on(
@@ -311,6 +337,86 @@ export class PlatformLibrary {
             this.logger.error(`Feature registration completed with ${successCount} successes and ${failureCount} failures`);
         } else {
             this.logger.info('All features registered successfully');
+        }
+    }
+
+    /**
+     * Wait for the reflector UI extension to be initialized
+     */
+    private waitForReflectorReady(): Promise<void> {
+        return new Promise((resolve) => {
+            const { frontendCommunicator } = this.modules;
+            const timeoutMs = 5000;
+
+            const timeout = setTimeout(() => {
+                const errorMsg = `Reflector UI extension did not initialize within ${timeoutMs}ms`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(errorMsg);
+                // Resolve anyway to allow initialization to continue
+                resolve();
+            }, timeoutMs);
+
+            frontendCommunicator.on('mage-platform-lib:reflector-ready', () => {
+                clearTimeout(timeout);
+                this.logger.debug('Reflector is ready');
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Register the reflector UI extension for backend-to-backend communication
+     */
+    private registerReflectorExtension(): void {
+        try {
+            const { uiExtensionManager } = this.modules;
+            if (!uiExtensionManager) {
+                throw new Error('UI Extension Manager not available');
+            }
+            uiExtensionManager.registerUIExtension(reflectorExtension);
+            this.logger.debug('Reflector UI extension registered');
+        } catch (error) {
+            const errorMsg = `Failed to register reflector UI extension: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(errorMsg);
+        }
+    }
+
+    /**
+     * Load a custom script and extract its manifest
+     * @param scriptName Name of the script file to load
+     * @returns Object containing manifest data (version, etc.)
+     */
+    private loadScriptManifest(scriptName: string): { version?: string } {
+        try {
+            // Get the path module to construct the full script path
+            const pathModule = this.modules.path;
+            if (!pathModule) {
+                return { version: undefined };
+            }
+
+            // Construct full script path from scriptDataDir
+            // scriptDataDir is at {profile}/script-data/{script-name}/
+            // scripts folder is at {profile}/scripts/
+            const scriptsFolder = pathModule.resolve(this.scriptDataDir, '../../scripts');
+            const scriptPath = pathModule.join(scriptsFolder, scriptName);
+
+            // Dynamically require the script module
+            const customScript = require(scriptPath);
+
+            // Try to get the manifest from the script's export
+            if (typeof customScript.getScriptManifest === 'function') {
+                const manifest = customScript.getScriptManifest();
+                if (manifest && typeof manifest === 'object' && manifest.version) {
+                    return { version: manifest.version };
+                }
+            }
+
+            // If no manifest or version, return undefined
+            return { version: undefined };
+        } catch (error) {
+            this.logger.debug(`Failed to load script manifest for ${scriptName}: ${error}`);
+            return { version: undefined };
         }
     }
 
