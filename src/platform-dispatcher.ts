@@ -109,14 +109,15 @@ export class PlatformDispatcher {
 
         this.logger.debug(`Dispatching to integration via IPC: ${eventName}`);
 
-        try {
-            // Create timeout promise
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => {
-                    reject(new Error(`IPC timeout: ${eventName} did not respond within ${IPC_TIMEOUT_MS}ms`));
-                }, IPC_TIMEOUT_MS);
-            });
+        // Create timeout promise with clearable timeout
+        let timeoutId: NodeJS.Timeout | undefined;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(new Error(`IPC timeout: ${eventName} did not respond within ${IPC_TIMEOUT_MS}ms`));
+            }, IPC_TIMEOUT_MS);
+        });
 
+        try {
             // Race between IPC call and timeout
             const response = await Promise.race([
                 this.frontendCommunicator.fireEventAsync<TResponse>(eventName, request),
@@ -127,6 +128,11 @@ export class PlatformDispatcher {
         } catch (error) {
             this.logger.error(`IPC dispatch failed for ${eventName}: ${error}`);
             throw error;
+        } finally {
+            // Always clear the timeout to prevent memory leaks
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
         }
     }
 
