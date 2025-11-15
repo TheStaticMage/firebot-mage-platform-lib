@@ -1,21 +1,21 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import {
-    createPlatformLibVersionInfo,
-    PLATFORM_LIB_VERSION,
     createErrorModal,
-    initializeErrorModal
+    createPlatformLibVersionInfo,
+    initializeErrorModal,
+    PLATFORM_LIB_VERSION
 } from '@thestaticmage/mage-platform-lib-client';
 import { platformCondition } from './conditions/platform';
+import { KNOWN_INTEGRATIONS } from './constants';
 import { createChatPlatformEffect } from './effects/chat-platform';
 import { platformFilter } from './filters/platform';
 import { IntegrationDetector } from './integration-detector';
 import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
+import { reflectorExtension } from './reflector';
 import { platformRestriction } from './restrictions/platform';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
-import { KNOWN_INTEGRATIONS } from './constants';
-import { reflectorExtension } from './reflector';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -23,18 +23,14 @@ import { reflectorExtension } from './reflector';
 export class PlatformLibrary {
     private logger: LogWrapper;
     private modules: ScriptModules;
-    private scriptDataDir: string;
-    private debug: boolean;
     private integrationDetector: IntegrationDetector;
     private platformDispatcher: PlatformDispatcher;
     private criticalErrors: string[] = [];
     private showErrorModal: (title: string, message: string) => Promise<void>;
 
-    constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string, debug = false) {
+    constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string) {
         this.logger = logger;
         this.modules = modules;
-        this.scriptDataDir = scriptDataDir;
-        this.debug = debug;
 
         this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}`);
 
@@ -135,30 +131,8 @@ export class PlatformLibrary {
             // Add call to action
             errorMessage += '<br><br><strong>Please ensure that the Mage Platform Library and all multi-platform integrations (e.g., Kick or YouTube) are up-to-date.</strong>';
 
-            // Convert markdown-style formatting to HTML
-            const htmlMessage = this.convertMarkdownToHtml(errorMessage);
-            await this.sendCriticalErrorNotification(htmlMessage);
+            await this.sendCriticalErrorNotification(errorMessage);
         }
-    }
-
-    /**
-     * Convert markdown-style formatting to HTML
-     * Supports: **bold**, *italic*, line breaks, and basic formatting
-     */
-    private convertMarkdownToHtml(markdown: string): string {
-        let html = markdown;
-
-        // Convert **bold** to <strong>
-        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-        // Convert *italic* to <em>
-        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-        // Convert newlines to <br>
-        html = html.replace(/\n\n/g, '<br><br>');
-        html = html.replace(/\n/g, '<br>');
-
-        return html;
     }
 
     /**
@@ -217,23 +191,6 @@ export class PlatformLibrary {
             this.logger.debug('Version requested');
             return PLATFORM_LIB_VERSION;
         });
-
-        // Script manifest handler - loads a custom script and extracts its manifest
-        frontendCommunicator.onAsync('platform-lib:get-script-manifest', async (request: { scriptName: string }) => {
-            if (!request || !request.scriptName) {
-                return { version: undefined };
-            }
-
-            try {
-                // Try to load the script and extract its manifest
-                const scriptManifest = this.loadScriptManifest(request.scriptName);
-                return scriptManifest;
-            } catch (error) {
-                this.logger.debug(`Failed to load manifest for script ${request.scriptName}: ${error}`);
-                return { version: undefined };
-            }
-        });
-
         this.logger.debug('Verification handlers registered');
     }
 
@@ -423,44 +380,6 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register UI extensions: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(errorMsg);
-        }
-    }
-
-    /**
-     * Load a custom script and extract its manifest
-     * @param scriptName Name of the script file to load
-     * @returns Object containing manifest data (version, etc.)
-     */
-    private loadScriptManifest(scriptName: string): { version?: string } {
-        try {
-            // Get the path module to construct the full script path
-            const pathModule = this.modules.path;
-            if (!pathModule) {
-                return { version: undefined };
-            }
-
-            // Construct full script path from scriptDataDir
-            // scriptDataDir is at {profile}/script-data/{script-name}/
-            // scripts folder is at {profile}/scripts/
-            const scriptsFolder = pathModule.resolve(this.scriptDataDir, '../../scripts');
-            const scriptPath = pathModule.join(scriptsFolder, scriptName);
-
-            // Dynamically require the script module
-            const customScript = require(scriptPath);
-
-            // Try to get the manifest from the script's export
-            if (typeof customScript.getScriptManifest === 'function') {
-                const manifest = customScript.getScriptManifest();
-                if (manifest && typeof manifest === 'object' && manifest.version) {
-                    return { version: manifest.version };
-                }
-            }
-
-            // If no manifest or version, return undefined
-            return { version: undefined };
-        } catch (error) {
-            this.logger.debug(`Failed to load script manifest for ${scriptName}: ${error}`);
-            return { version: undefined };
         }
     }
 

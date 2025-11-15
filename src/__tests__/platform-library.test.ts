@@ -89,7 +89,7 @@ describe('PlatformLibrary', () => {
             }
         } as unknown as ScriptModules;
 
-        platformLib = new PlatformLibrary(mockLogger, mockModules, '/mock/script-data/test', false);
+        platformLib = new PlatformLibrary(mockLogger, mockModules, '/mock/script-data/test');
     });
 
     describe('initialize', () => {
@@ -204,16 +204,6 @@ describe('PlatformLibrary', () => {
             await platformLib.initialize();
         });
 
-        // it('should return available platforms', () => {
-        //     const queryHandler = mockFrontendCommunicator.getHandler('platform-lib:get-available-platforms');
-        //     const result = queryHandler();
-
-        //     expect(result).toEqual({
-        //         platforms: expect.arrayContaining(['kick', 'twitch'])
-        //     });
-        //     expect(mockLogger.debug).toHaveBeenCalledWith('Query platforms request');
-        // });
-
         it('should dispatch operations to platform', async () => {
             const dispatchHandler = mockFrontendCommunicator.getHandler('platform-lib:dispatch');
             const request = {
@@ -252,15 +242,6 @@ describe('PlatformLibrary', () => {
 
             expect(mockLogger.info).toHaveBeenCalledWith('Platform Library shutting down...');
             expect(mockLogger.info).toHaveBeenCalledWith('Platform Library shutdown complete');
-        });
-    });
-
-    describe('debug mode', () => {
-        it('should create library with debug enabled', async () => {
-            const debugLib = new PlatformLibrary(mockLogger, mockModules, '/mock/script-data/test', true);
-            await debugLib.initialize();
-
-            expect(mockLogger.debug).toHaveBeenCalled();
         });
     });
 });
