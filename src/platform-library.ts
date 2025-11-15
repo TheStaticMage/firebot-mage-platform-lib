@@ -51,6 +51,9 @@ export class PlatformLibrary {
         this.criticalErrors = [];
 
         try {
+            // Detect installed integrations
+            await this.detectAndValidateIntegrations();
+
             // Set up IPC handlers
             this.setupVerificationHandlers();
             this.setupDispatchHandlers();
@@ -58,7 +61,10 @@ export class PlatformLibrary {
             // Register features
             this.registerFeatures();
 
-            this.logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
+            // Only log success if there were no critical errors
+            if (this.criticalErrors.length === 0) {
+                this.logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
+            }
 
             // Display critical errors if any occurred
             this.displayCriticalErrors();
@@ -74,7 +80,7 @@ export class PlatformLibrary {
      */
     private sendCriticalErrorNotification(message: string): void {
         const { frontendCommunicator } = this.modules;
-        frontendCommunicator.send('error', `Platform Library: ${message}`);
+        frontendCommunicator.send('error', `Mage Platform Library: ${message}`);
         this.logger.info(`Critical error notification sent: ${message}`);
     }
 
@@ -83,11 +89,64 @@ export class PlatformLibrary {
      */
     private displayCriticalErrors(): void {
         if (this.criticalErrors.length > 0) {
-            const errorMessage = this.criticalErrors.length === 1
-                ? this.criticalErrors[0]
-                : `Multiple errors occurred:\n\n${this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`;
+            let errorMessage: string;
+
+            if (this.criticalErrors.length === 1) {
+                errorMessage = this.criticalErrors[0];
+            } else {
+                const errorList = this.criticalErrors.map((e, i) => `${i + 1}. ${e}`).join('<br><br>');
+                errorMessage = `Multiple errors occurred:<br><br>${errorList}`;
+            }
+
+            // Add call to action
+            errorMessage += '<br><br><strong>Please ensure that the Mage Platform Library and all multi-platform integrations (e.g., Kick or YouTube) are up-to-date.</strong>';
 
             this.sendCriticalErrorNotification(errorMessage);
+        }
+    }
+
+    /**
+     * Detect and validate installed integrations
+     */
+    private async detectAndValidateIntegrations(): Promise<void> {
+        // Detect installed integrations
+        await this.integrationDetector.detectInstalledIntegrations();
+
+        // Get all known integrations from the integration detector
+        const knownIntegrations = [
+            { platformId: 'kick', displayName: 'Kick', semverRange: '>= 0.7.0' },
+            { platformId: 'youtube', displayName: 'YouTube', semverRange: '>= 0.0.1' }
+        ];
+
+        // Check each known integration
+        for (const integration of knownIntegrations) {
+            const info = this.integrationDetector.getDetectedIntegrationInfo(integration.platformId);
+
+            if (info) {
+                // Integration found - log version
+                this.logger.info(`Found ${integration.displayName} integration (version: ${info.version || 'unknown'})`);
+
+                // Check version compatibility
+                if (info.version) {
+                    const versionCheck = this.integrationDetector.checkIntegrationCompatibility(
+                        integration.platformId,
+                        integration.semverRange
+                    );
+
+                    if (!versionCheck.compatible) {
+                        const errorMsg = `${integration.displayName} integration version ${info.version} is incompatible. ${versionCheck.reason}. Required: ${integration.semverRange}`;
+                        this.logger.error(errorMsg);
+                        this.criticalErrors.push(errorMsg);
+                    }
+                } else {
+                    const errorMsg = `${integration.displayName} integration has no version information`;
+                    this.logger.error(errorMsg);
+                    this.criticalErrors.push(errorMsg);
+                }
+            } else {
+                // Integration not found
+                this.logger.debug(`${integration.displayName} integration not installed`);
+            }
         }
     }
 
@@ -249,7 +308,7 @@ export class PlatformLibrary {
         }
 
         if (failureCount > 0) {
-            this.logger.warn(`Feature registration completed with ${successCount} successes and ${failureCount} failures`);
+            this.logger.error(`Feature registration completed with ${successCount} successes and ${failureCount} failures`);
         } else {
             this.logger.info('All features registered successfully');
         }
