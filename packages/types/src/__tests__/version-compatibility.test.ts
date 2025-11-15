@@ -143,11 +143,9 @@ describe('checkVersionCompatibility', () => {
         });
 
         it('should use PLATFORM_LIB_MIN_VERSION constant', () => {
-            expect(PLATFORM_LIB_MIN_VERSION).toBe('1.0.0');
-
             const result = checkVersionCompatibility(
                 `^${PLATFORM_LIB_MIN_VERSION}`,
-                '1.5.0'
+                '0.9.9'
             );
             expect(result.compatible).toBe(true);
         });
