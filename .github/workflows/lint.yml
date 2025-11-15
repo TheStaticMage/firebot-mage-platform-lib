@@ -23,8 +23,8 @@ jobs:
           node-version: '22.x'
       - name: npm install
         run: npm install
-      - name: Lint types package
-        run: npx eslint packages/types/src/ --max-warnings 0
+      - name: Lint client package
+        run: npx eslint packages/client/src/ --max-warnings 0
       - name: Run ESLint on root
         run: npx eslint src/ --max-warnings 0
       - name: Check final newline
