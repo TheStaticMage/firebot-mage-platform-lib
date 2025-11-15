@@ -50,22 +50,34 @@ No additional configuration or secrets are needed. The workflows will automatica
 
 To install the package in another project, users need to:
 
-1. **Create a `.npmrc` file** in the project root (or user home directory):
-
-```
-@mage-platform-lib:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
-```
-
-2. **Generate a GitHub Personal Access Token (PAT)**:
+1. **Generate a GitHub Personal Access Token (PAT)**:
    - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
    - Click "Generate new token (classic)"
    - Give it a descriptive name (e.g., "NPM Package Access")
    - Select the `read:packages` scope
    - Click "Generate token"
-   - Copy the token and replace `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` in the `.npmrc` file
+   - Copy the token and save it securely
 
-3. **Install the package**:
+2. **Set the token as an environment variable**:
+
+```bash
+# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+export GITHUB_TOKEN=your_github_personal_access_token
+
+# Or for the current session only
+export GITHUB_TOKEN=your_github_personal_access_token
+```
+
+3. **Create a `.npmrc` file** in the project root (or user home directory):
+
+```
+@mage-platform-lib:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+**Note:** The `.npmrc` file references the environment variable using `${GITHUB_TOKEN}`. Never hardcode your token directly in `.npmrc` as this is a security risk if the file is committed to version control.
+
+4. **Install the package**:
 
 ```bash
 # Install a specific stable version
@@ -78,20 +90,15 @@ npm install @mage-platform-lib/client
 npm install @mage-platform-lib/client@1.0.0-sha.abc1234
 ```
 
-### Alternative: Using NPM_TOKEN Environment Variable
+### Alternative: Using .npmrc in CI/CD
 
-Instead of putting the token in `.npmrc`, you can use an environment variable:
+For CI/CD environments (like GitHub Actions), you can create the `.npmrc` file dynamically:
 
-```bash
-# Set the environment variable
-export NPM_TOKEN=your_github_personal_access_token
-
-# Update .npmrc to use the environment variable
-@mage-platform-lib:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${NPM_TOKEN}
-
-# Then install
-npm install @mage-platform-lib/client
+```yaml
+- name: Setup .npmrc
+  run: |
+    echo "@mage-platform-lib:registry=https://npm.pkg.github.com" >> .npmrc
+    echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
 ```
 
 ## Viewing Published Packages
