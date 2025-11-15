@@ -95,7 +95,28 @@ describe('PlatformLibrary', () => {
             expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(1);
         });
 
-        it('should log error and throw on initialization failure', async () => {
+        it('should handle feature registration failures gracefully', async () => {
+            const registrationError = new Error('A variable with the handle platform already exists.');
+            mockModules.replaceVariableManager.registerReplaceVariable = jest.fn().mockImplementation(() => {
+                throw registrationError;
+            });
+
+            // Should not throw, should complete initialization
+            await platformLib.initialize();
+
+            // Should log the registration errors
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform variable'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform-aware user display name variable'));
+
+            // Should log warning about failures
+            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Feature registration completed with'));
+            expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('failures'));
+
+            // Should still complete initialization
+            expect(mockLogger.info).toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
+        });
+
+        it('should log error and throw on handler setup failure', async () => {
             const error = new Error('Test initialization error');
             mockFrontendCommunicator.on.mockImplementation(() => {
                 throw error;

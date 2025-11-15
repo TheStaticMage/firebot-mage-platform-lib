@@ -135,40 +135,84 @@ export class PlatformLibrary {
             effectManager
         } = this.modules;
 
-        // Register variables
-        replaceVariableManager.registerReplaceVariable(platformVariable);
-        this.logger.debug('Registered platform variable');
+        let successCount = 0;
+        let failureCount = 0;
 
-        const platformAwareUserDisplayNameVariable = createPlatformAwareUserDisplayNameVariable(
-            this.platformDispatcher,
-            this.logger
-        );
-        replaceVariableManager.registerReplaceVariable(platformAwareUserDisplayNameVariable);
-        this.logger.debug('Registered platform-aware user display name variable');
+        // Register platform variable
+        try {
+            replaceVariableManager.registerReplaceVariable(platformVariable);
+            this.logger.debug('Registered platform variable');
+            successCount++;
+        } catch (error) {
+            this.logger.error(`Failed to register platform variable: ${error}`);
+            failureCount++;
+        }
+
+        // Register platform-aware user display name variable
+        try {
+            const platformAwareUserDisplayNameVariable = createPlatformAwareUserDisplayNameVariable(
+                this.platformDispatcher,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformAwareUserDisplayNameVariable);
+            this.logger.debug('Registered platform-aware user display name variable');
+            successCount++;
+        } catch (error) {
+            this.logger.error(`Failed to register platform-aware user display name variable: ${error}`);
+            failureCount++;
+        }
 
         // Register filter
-        eventFilterManager.registerFilter(platformFilter);
-        this.logger.debug('Registered platform filter');
+        try {
+            eventFilterManager.registerFilter(platformFilter);
+            this.logger.debug('Registered platform filter');
+            successCount++;
+        } catch (error) {
+            this.logger.error(`Failed to register platform filter: ${error}`);
+            failureCount++;
+        }
 
         // Register condition
-        conditionManager.registerConditionType(platformCondition);
-        this.logger.debug('Registered platform condition');
+        try {
+            conditionManager.registerConditionType(platformCondition);
+            this.logger.debug('Registered platform condition');
+            successCount++;
+        } catch (error) {
+            this.logger.error(`Failed to register platform condition: ${error}`);
+            failureCount++;
+        }
 
         // Register restriction
-        restrictionManager.registerRestriction(platformRestriction);
-        this.logger.debug('Registered platform restriction');
+        try {
+            restrictionManager.registerRestriction(platformRestriction);
+            this.logger.debug('Registered platform restriction');
+            successCount++;
+        } catch (error) {
+            this.logger.error(`Failed to register platform restriction: ${error}`);
+            failureCount++;
+        }
 
         // Register effect
-        const chatPlatformEffect = createChatPlatformEffect(
-            this.integrationDetector,
-            this.platformDispatcher,
-            this.modules.frontendCommunicator,
-            this.logger
-        );
-        effectManager.registerEffect(chatPlatformEffect);
-        this.logger.debug('Registered platform-aware chat effect');
+        try {
+            const chatPlatformEffect = createChatPlatformEffect(
+                this.integrationDetector,
+                this.platformDispatcher,
+                this.modules.frontendCommunicator,
+                this.logger
+            );
+            effectManager.registerEffect(chatPlatformEffect);
+            this.logger.debug('Registered platform-aware chat effect');
+            successCount++;
+        } catch (error) {
+            this.logger.error(`Failed to register platform-aware chat effect: ${error}`);
+            failureCount++;
+        }
 
-        this.logger.info('All features registered successfully');
+        if (failureCount > 0) {
+            this.logger.warn(`Feature registration completed with ${successCount} successes and ${failureCount} failures`);
+        } else {
+            this.logger.info('All features registered successfully');
+        }
     }
 
     /**
