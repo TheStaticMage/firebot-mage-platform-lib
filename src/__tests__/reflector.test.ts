@@ -99,8 +99,14 @@ describe('FrontendReflector', () => {
             on: jest.Mock;
             fireEventAsync: jest.Mock;
         };
+        let consoleLogSpy: jest.SpyInstance;
+        let consoleErrorSpy: jest.SpyInstance;
 
         beforeEach(() => {
+            // Suppress console output in tests
+            consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+            consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
             reflector.initialize();
 
             // Extract the registered factory function
@@ -113,6 +119,11 @@ describe('FrontendReflector', () => {
                 on: jest.fn(),
                 fireEventAsync: jest.fn()
             };
+        });
+
+        afterEach(() => {
+            consoleLogSpy.mockRestore();
+            consoleErrorSpy.mockRestore();
         });
 
         it('should register platform-lib:reflect handler', () => {
