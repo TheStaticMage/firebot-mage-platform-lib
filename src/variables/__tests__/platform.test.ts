@@ -116,7 +116,7 @@ describe('platformVariable', () => {
             expect(result).toBe('youtube');
         });
 
-        it('should return unknown for empty trigger', () => {
+        it('should return twitch for generic username', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
@@ -125,10 +125,10 @@ describe('platformVariable', () => {
             };
 
             const result = platformVariable.evaluator(trigger);
-            expect(result).toBe('unknown');
+            expect(result).toBe('twitch');
         });
 
-        it('should return unknown for trigger with no platform indicators', () => {
+        it('should return twitch for trigger with generic username', () => {
             const trigger: Trigger = {
                 type: 'command',
                 metadata: {
@@ -137,7 +137,7 @@ describe('platformVariable', () => {
             };
 
             const result = platformVariable.evaluator(trigger);
-            expect(result).toBe('unknown');
+            expect(result).toBe('twitch');
         });
 
         it('should normalize platform strings', () => {

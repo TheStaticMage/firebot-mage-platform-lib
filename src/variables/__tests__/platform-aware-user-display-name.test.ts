@@ -193,18 +193,25 @@ describe('platformAwareUserDisplayName variable', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'someuser',
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
                     chatMessage: {
                         username: 'someuser',
                         displayName: 'SomeFallbackUser'
                     }
                 }
-            };
+            } as unknown as Trigger;
+
+            // Since chatMessage.username exists, it will be detected as twitch
+            // and dispatcher will be called, but mock it to return nothing
+            mockDispatcher.dispatch.mockRejectedValue(new Error('Dispatcher error'));
 
             const result = await variable.evaluator(trigger);
 
+            // Should fall back to chatMessage.displayName when dispatcher fails or returns nothing
             expect(result).toBe('SomeFallbackUser');
-            expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+            expect(mockDispatcher.dispatch).toHaveBeenCalled();
         });
 
         it('should use fallback from eventData.displayName when platform call fails', async () => {

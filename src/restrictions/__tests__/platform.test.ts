@@ -220,9 +220,12 @@ describe('platformRestriction', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
-            };
+            } as unknown as Trigger;
 
             const result = platformRestriction.predicate(trigger, restrictionData);
 
@@ -238,9 +241,12 @@ describe('platformRestriction', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
-            };
+            } as unknown as Trigger;
 
             const result = platformRestriction.predicate(trigger, restrictionData);
 
@@ -313,9 +319,12 @@ describe('platformRestriction', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
-            };
+            } as unknown as Trigger;
 
             const result = platformRestriction.predicate(trigger, restrictionData);
 

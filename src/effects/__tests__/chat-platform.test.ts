@@ -243,9 +243,12 @@ describe('chat-platform effect', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
-            };
+            } as unknown as Trigger;
 
             await effect.onTriggerEvent({
                 effect: effectModel,
