@@ -3,7 +3,7 @@ import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/trigge
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import { IntegrationDetector } from '../integration-detector';
 import { PlatformDispatcher } from '../platform-dispatcher';
-import { detectPlatform } from '../platform-detector';
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
 import { LogWrapper } from '../main';
 
 /**

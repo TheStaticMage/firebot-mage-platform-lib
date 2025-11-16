@@ -4,7 +4,7 @@ import {
     PresetValue
 } from '@crowbartools/firebot-custom-scripts-types/types/modules/event-filter-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { detectPlatform } from '../platform-detector';
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
 
 /**
  * Platform event filter - filters events based on detected platform

@@ -1,6 +1,6 @@
 import { ConditionType, ConditionSettings } from '@crowbartools/firebot-custom-scripts-types/types/modules/condition-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { detectPlatform } from '../platform-detector';
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
 
 type PlatformComparison = 'is' | 'isNot';
 
