@@ -111,7 +111,10 @@ describe('platformFilter', () => {
                 eventSourceId: 'twitch',
                 eventId: 'chat-message',
                 eventMeta: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
             };
 

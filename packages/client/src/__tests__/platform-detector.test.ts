@@ -82,6 +82,42 @@ describe('PlatformDetector', () => {
                 expect(detectPlatform(trigger)).toBe('kick');
             });
 
+            it('should map mage-kick-integration to kick', () => {
+                const trigger = {
+                    metadata: {
+                        eventSource: {
+                            id: 'mage-kick-integration'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('kick');
+            });
+
+            it('should map mage-youtube-integration to youtube', () => {
+                const trigger = {
+                    metadata: {
+                        eventSource: {
+                            id: 'mage-youtube-integration'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('youtube');
+            });
+
+            it('should detect twitch from eventSource.id', () => {
+                const trigger = {
+                    metadata: {
+                        eventSource: {
+                            id: 'twitch'
+                        }
+                    }
+                } as unknown as Trigger;
+
+                expect(detectPlatform(trigger)).toBe('twitch');
+            });
+
             it('should prioritize explicit platform over eventSource', () => {
                 const trigger = {
                     metadata: {
@@ -221,14 +257,14 @@ describe('PlatformDetector', () => {
                 expect(detectPlatform(trigger)).toBe('youtube');
             });
 
-            it('should return unknown for username without platform indicator', () => {
+            it('should return twitch for username without platform indicator', () => {
                 const trigger = {
                     metadata: {
                         username: 'testuser'
                     }
                 } as unknown as Trigger;
 
-                expect(detectPlatform(trigger)).toBe('unknown');
+                expect(detectPlatform(trigger)).toBe('twitch');
             });
 
             it('should detect YouTube from metadata.user.id', () => {

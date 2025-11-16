@@ -73,6 +73,12 @@ function checkExplicitPlatform(trigger: Trigger): string | null {
 function checkEventSource(trigger: Trigger): string | null {
     const eventSource = trigger.metadata?.eventSource as Record<string, unknown>;
     if (eventSource && typeof eventSource.id === 'string') {
+        // Try to map integration ID to platform
+        const mapped = mapIntegrationIdToPlatform(eventSource.id);
+        if (mapped) {
+            return mapped;
+        }
+        // Fall back to normalizing the ID as-is
         return normalizePlatform(eventSource.id);
     }
     return null;
@@ -182,10 +188,11 @@ function checkMetadata(trigger: Trigger): string | null {
  * - Twitch user IDs are numeric
  * - Kick user IDs start with 'k' plus the numeric ID from Kick
  * - YouTube user IDs start with 'y' plus the ID from YouTube
+ * - Non-matching patterns default to Twitch
  */
-function detectFromUserId(userId: string): string | null {
+function detectFromUserId(userId: string): string {
     if (!userId) {
-        return null;
+        return null as unknown as string;
     }
 
     // Kick user IDs start with 'k'
@@ -203,17 +210,19 @@ function detectFromUserId(userId: string): string | null {
         return 'twitch';
     }
 
-    return null;
+    // Non-matching userId pattern: assume Twitch
+    return 'twitch';
 }
 
 /**
  * Detect platform from username patterns
  * - Kick usernames end with '@kick'
  * - YouTube usernames end with '@youtube'
+ * - Other usernames default to Twitch
  */
-function detectFromUsername(username: string): string | null {
+function detectFromUsername(username: string): string {
     if (!username) {
-        return null;
+        return null as unknown as string;
     }
 
     // Kick usernames end with '@kick'
@@ -226,25 +235,41 @@ function detectFromUsername(username: string): string | null {
         return 'youtube';
     }
 
-    return null;
+    // Fallback: any other username is assumed to be Twitch
+    return 'twitch';
+}
+
+/**
+ * Map integration IDs/URIs to platform short names
+ */
+function mapIntegrationIdToPlatform(integrationId: string): string | null {
+    const mapping: Record<string, string> = {
+        'mage-kick-integration': 'kick',
+        'mage-youtube-integration': 'youtube',
+        'twitch': 'twitch'
+    };
+    return mapping[integrationId.toLowerCase()] || null;
 }
 
 /**
  * Normalize platform string to lowercase standard format
+ * Preserves case for unknown platforms, only normalizes known ones
  */
 function normalizePlatform(platform: string): string {
-    const normalized = platform.toLowerCase().trim();
+    const trimmed = platform.trim();
+    const lower = trimmed.toLowerCase();
 
-    // Map common variations
-    if (normalized === 'twitch' || normalized === 'twitchtv') {
+    // Only lowercase explicitly recognized platforms
+    if (lower === 'twitch' || lower === 'twitchtv') {
         return 'twitch';
     }
-    if (normalized === 'kick') {
+    if (lower === 'kick') {
         return 'kick';
     }
-    if (normalized === 'youtube' || normalized === 'yt') {
+    if (lower === 'youtube' || lower === 'yt') {
         return 'youtube';
     }
 
-    return normalized;
+    // Preserve case for unknown platforms
+    return trimmed;
 }

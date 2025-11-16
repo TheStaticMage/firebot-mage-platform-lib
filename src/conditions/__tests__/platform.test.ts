@@ -181,9 +181,12 @@ describe('platformCondition', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
-            };
+            } as unknown as Trigger;
 
             const result = platformCondition.predicate(condition, trigger);
 
@@ -243,9 +246,12 @@ describe('platformCondition', () => {
             const trigger: Trigger = {
                 type: 'manual',
                 metadata: {
-                    username: 'testuser'
+                    username: undefined,
+                    eventSource: undefined,
+                    eventData: undefined,
+                    chatMessage: undefined
                 }
-            };
+            } as unknown as Trigger;
 
             const result = platformCondition.predicate(condition, trigger);
 
