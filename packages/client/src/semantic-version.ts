@@ -26,6 +26,11 @@ export function checkSemanticVersion(currentVersion: string, versionRange: strin
             return false;
         }
 
+        // If version range is empty, return false
+        if (!versionRange || !versionRange.trim()) {
+            return false;
+        }
+
         // Check if current version satisfies the range
         return semver.satisfies(current, versionRange);
     } catch {

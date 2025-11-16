@@ -81,7 +81,8 @@ See [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) for full documentation and exam
 
 - Run `npx eslint src/ --max-warnings 0` after changes to verify lint.
 - Run `npm run build:dev` after major changes to verify compilation.
-- Run `npx jest` after changes to verify tests.
+- Run `npx jest` after changes to verify main tests.
+- Run `npm test` in `packages/client` directory after changes to verify client library tests.
 
 ## Integration Locations
 
