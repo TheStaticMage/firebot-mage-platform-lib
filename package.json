@@ -1,0 +1,45 @@
+{
+    "name": "firebot-mage-platform-lib",
+    "scriptOutputName": "firebot-mage-platform-lib",
+    "version": "0.0.1",
+    "description": "Multi-platform support library for Firebot integrations",
+    "main": "",
+    "scripts": {
+        "build": "npm run build:client && npm install && npm run build:version && npm run build:webpack",
+        "build:dev": "npm run build:client && npm install && npm run build:version && npm run build:webpack && npm run copy",
+        "build:client": "cd packages/client && npm install && npm run build",
+        "build:version": "node ./scripts/update-version.js",
+        "build:webpack": "webpack",
+        "copy": "node ./scripts/copy-build.js",
+        "prepare": "",
+        "test": "jest",
+        "lint": "eslint src/ --max-warnings 0"
+    },
+    "author": "thestaticmage",
+    "license": "GPL-3.0",
+    "devDependencies": {
+        "@crowbartools/firebot-custom-scripts-types": "github:TheStaticMage/firebot-custom-scripts-types#running",
+        "@eslint/js": "^9.38.0",
+        "@stylistic/eslint-plugin": "^5.5.0",
+        "@types/jest": "^30.0.0",
+        "@types/semver": "^7.5.0",
+        "jest": "^30.2.0",
+        "node-loader": "^2.1.0",
+        "terser-webpack-plugin": "^5.3.14",
+        "ts-jest": "^29.4.5",
+        "ts-loader": "^9.5.4",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.2",
+        "webpack": "^5.102.1",
+        "webpack-cli": "^6.0.1"
+    },
+    "dependencies": {
+        "@thestaticmage/mage-platform-lib-client": "file:./packages/client",
+        "axios": "^1.6.0",
+        "semver": "^7.6.0"
+    },
+    "overrides": {
+        "test-exclude": "^7.0.1",
+        "js-yaml": "^4.1.1"
+    }
+}

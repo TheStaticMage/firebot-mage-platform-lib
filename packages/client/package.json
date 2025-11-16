@@ -1,0 +1,49 @@
+{
+    "name": "@thestaticmage/mage-platform-lib-client",
+    "version": "0.0.1",
+    "description": "Client library with shared TypeScript types for the Mage Platform Library and integrations",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "test": "jest"
+    },
+    "keywords": [
+        "firebot",
+        "platform",
+        "client",
+        "types",
+        "typescript"
+    ],
+    "author": "thestaticmage",
+    "license": "GPL-3.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/TheStaticMage/firebot-mage-platform-lib.git",
+        "directory": "packages/client"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com",
+        "access": "public"
+    },
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^22.0.0",
+        "@types/semver": "^7.5.0",
+        "jest": "^30.2.0",
+        "ts-jest": "^29.4.5",
+        "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "@crowbartools/firebot-custom-scripts-types": "github:TheStaticMage/firebot-custom-scripts-types#running",
+        "semver": "^7.6.0"
+    },
+    "files": [
+        "dist/**/*"
+    ],
+    "overrides": {
+        "test-exclude": "^7.0.1",
+        "js-yaml": "^4.1.1"
+    }
+}

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "*"
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Create dist directory
+        run: mkdir -p dist
+      - name: Build and test client package
+        run: |
+          cd packages/client
+          npm install
+          npm run build
+          npm test
+      - name: npm install
+        run: npm install
+      - name: get-version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+      - name: check version
+        run: |
+          if [ -z "${{ steps.package-version.outputs.current-version }}" ]; then
+            echo "No version found in package.json"
+            exit 1
+          fi
+          echo "package.json version is ${{ steps.package-version.outputs.current-version }}"
+          platform_version=$(grep '^export const PLATFORM_LIB_VERSION = ' packages/client/src/version.ts | cut -d'"' -f2)
+          echo "PLATFORM_LIB_VERSION is $platform_version"
+          if [ "${{ steps.package-version.outputs.current-version }}" != "$platform_version" ]; then
+            echo "Version in package.json does not match PLATFORM_LIB_VERSION in packages/client/src/version.ts"
+            exit 1
+          fi
+          echo "Version in package.json matches PLATFORM_LIB_VERSION"
+      - name: npm build
+        run: npm run build
+      - name: Run Jest unit tests
+        run: npx jest --ci --coverage

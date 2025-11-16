@@ -1,0 +1,28 @@
+# Project
+dist
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# OS
+.DS_Store
+
+# Coverage
+/coverage/
+
+# Avoid accidentally committing tokens
+/client_secret_*.json
+/.claude
+/.github/copilot-instructions.md
+/AGENTS.md

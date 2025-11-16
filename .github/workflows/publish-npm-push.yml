@@ -1,0 +1,57 @@
+name: Publish NPM Package on Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@thestaticmage'
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Get version from package.json
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+        with:
+          path: packages/client
+
+      - name: Set prerelease version
+        run: |
+          cd packages/client
+          npm version ${{ steps.package-version.outputs.current-version }}-sha.${{ steps.sha.outputs.short_sha }} --no-git-tag-version
+          echo "Publishing version: $(node -p "require('./package.json').version")"
+
+      - name: Build client package
+        run: |
+          cd packages/client
+          npm install
+          npm run build
+
+      - name: Publish to GitHub Packages
+        run: |
+          cd packages/client
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
