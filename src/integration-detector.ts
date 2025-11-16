@@ -61,10 +61,10 @@ export class IntegrationDetector {
             for (const script of scripts) {
                 const platformId = this.identifyIntegration(script);
                 if (platformId) {
-                    // Try to load the script's manifest to get version info
-                    this.logger.debug(`Loading manifest for detected integration: ${platformId}`);
-                    let version = script.version;
-                    if (!version && script.scriptName) {
+                    // Load the script's version from the script file
+                    this.logger.debug(`Loading version for detected integration: ${platformId}`);
+                    let version: string | undefined;
+                    if (script.scriptName) {
                         version = this.loadScriptVersion(script.scriptName);
                     }
 

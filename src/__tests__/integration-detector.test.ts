@@ -58,13 +58,13 @@ describe('IntegrationDetector', () => {
 
     describe('identifyIntegration', () => {
         it('should identify Kick integration by manifest name', () => {
-            const script = { name: 'Kick Integration', version: '0.6.2' };
+            const script = { name: 'Kick Integration' };
             const result = detector.identifyIntegration(script);
             expect(result).toBe('kick');
         });
 
         it('should identify YouTube integration by manifest name', () => {
-            const script = { name: 'YouTube Integration', version: '0.0.1' };
+            const script = { name: 'YouTube Integration' };
             const result = detector.identifyIntegration(script);
             expect(result).toBe('youtube');
         });
@@ -72,8 +72,7 @@ describe('IntegrationDetector', () => {
         it('should identify Kick integration by script ID', () => {
             const script = {
                 name: 'Some Other Name',
-                id: 'firebot-mage-kick-integration',
-                version: '0.6.2'
+                id: 'firebot-mage-kick-integration'
             };
             const result = detector.identifyIntegration(script);
             expect(result).toBe('kick');
@@ -82,15 +81,14 @@ describe('IntegrationDetector', () => {
         it('should identify YouTube integration by script ID', () => {
             const script = {
                 name: 'Some Other Name',
-                id: 'firebot-mage-youtube-integration',
-                version: '0.0.1'
+                id: 'firebot-mage-youtube-integration'
             };
             const result = detector.identifyIntegration(script);
             expect(result).toBe('youtube');
         });
 
         it('should return null for unknown integration', () => {
-            const script = { name: 'Unknown Integration', version: '1.0.0' };
+            const script = { name: 'Unknown Integration' };
             const result = detector.identifyIntegration(script);
             expect(result).toBeNull();
         });
@@ -104,7 +102,7 @@ describe('IntegrationDetector', () => {
     describe('detectInstalledIntegrations', () => {
         it('should detect and store Kick integration', async () => {
             const scripts = [
-                { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
+                { name: 'Kick Integration', id: 'firebot-mage-kick-integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -117,7 +115,7 @@ describe('IntegrationDetector', () => {
 
         it('should detect and store YouTube integration', async () => {
             const scripts = [
-                { name: 'YouTube Integration', version: '0.0.1', id: 'firebot-mage-youtube-integration' }
+                { name: 'YouTube Integration', id: 'firebot-mage-youtube-integration', scriptName: 'youtube.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -130,8 +128,8 @@ describe('IntegrationDetector', () => {
 
         it('should detect multiple integrations', async () => {
             const scripts = [
-                { name: 'Kick Integration', version: '0.6.2' },
-                { name: 'YouTube Integration', version: '0.0.1' }
+                { name: 'Kick Integration', scriptName: 'kick.js' },
+                { name: 'YouTube Integration', scriptName: 'youtube.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -144,8 +142,8 @@ describe('IntegrationDetector', () => {
 
         it('should ignore unknown scripts', async () => {
             const scripts = [
-                { name: 'Unknown Script', version: '1.0.0' },
-                { name: 'Kick Integration', version: '0.6.2' }
+                { name: 'Unknown Script', scriptName: 'unknown.js' },
+                { name: 'Kick Integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -195,8 +193,8 @@ describe('IntegrationDetector', () => {
 
         it('should include detected platforms', async () => {
             const scripts = [
-                { name: 'Kick Integration', version: '0.6.2' },
-                { name: 'YouTube Integration', version: '0.0.1' }
+                { name: 'Kick Integration', scriptName: 'kick.js' },
+                { name: 'YouTube Integration', scriptName: 'youtube.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -211,7 +209,7 @@ describe('IntegrationDetector', () => {
     describe('getDetectedIntegrationInfo', () => {
         it('should return integration info for detected integration', async () => {
             const scripts = [
-                { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
+                { name: 'Kick Integration', id: 'firebot-mage-kick-integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -221,7 +219,7 @@ describe('IntegrationDetector', () => {
             const info = detector.getDetectedIntegrationInfo('kick');
             expect(info).toEqual({
                 scriptName: 'Kick Integration',
-                version: '0.6.2',
+                version: '0.6.2', // Version loaded from mock fs.readFileSync
                 scriptId: 'firebot-mage-kick-integration'
             });
         });
@@ -235,7 +233,7 @@ describe('IntegrationDetector', () => {
     describe('checkIntegrationCompatibility', () => {
         it('should return compatible for valid detected integration', async () => {
             const scripts = [
-                { name: 'Kick Integration', version: '0.6.2', id: 'firebot-mage-kick-integration' }
+                { name: 'Kick Integration', id: 'firebot-mage-kick-integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -247,8 +245,20 @@ describe('IntegrationDetector', () => {
         });
 
         it('should return incompatible for version mismatch', async () => {
+            // Temporarily change mock to return different version
+            mockModules.fs.readFileSync.mockReturnValueOnce(`
+                (function() {
+                    var exports = {};
+                    module.exports = {
+                        getScriptManifest: function() {
+                            return { version: "0.5.0" };
+                        }
+                    };
+                })();
+            `);
+
             const scripts = [
-                { name: 'Kick Integration', version: '0.5.0', id: 'firebot-mage-kick-integration' }
+                { name: 'Kick Integration', id: 'firebot-mage-kick-integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -266,6 +276,7 @@ describe('IntegrationDetector', () => {
         });
 
         it('should return incompatible for integration without version', async () => {
+            // Script without scriptName means version cannot be loaded
             const scripts = [
                 { name: 'Kick Integration', id: 'firebot-mage-kick-integration' }
             ];
@@ -279,8 +290,20 @@ describe('IntegrationDetector', () => {
         });
 
         it('should log warning for incompatible integration', async () => {
+            // Temporarily change mock to return different version
+            mockModules.fs.readFileSync.mockReturnValueOnce(`
+                (function() {
+                    var exports = {};
+                    module.exports = {
+                        getScriptManifest: function() {
+                            return { version: "0.5.0" };
+                        }
+                    };
+                })();
+            `);
+
             const scripts = [
-                { name: 'Kick Integration', version: '0.5.0', id: 'firebot-mage-kick-integration' }
+                { name: 'Kick Integration', id: 'firebot-mage-kick-integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
@@ -296,7 +319,7 @@ describe('IntegrationDetector', () => {
     describe('clear', () => {
         it('should clear detected integrations', async () => {
             const scripts = [
-                { name: 'Kick Integration', version: '0.6.2' }
+                { name: 'Kick Integration', scriptName: 'kick.js' }
             ];
 
             (startupScriptsModule.getStartupScripts as jest.Mock).mockResolvedValue(scripts);
