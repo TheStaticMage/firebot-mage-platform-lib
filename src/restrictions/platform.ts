@@ -1,6 +1,6 @@
 import { RestrictionType } from '@crowbartools/firebot-custom-scripts-types/types/restrictions';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { detectPlatform } from '../platform-detector';
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
 
 interface PlatformRestrictionModel {
     comparison: 'is' | 'isNot';

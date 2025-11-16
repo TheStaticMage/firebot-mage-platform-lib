@@ -4,13 +4,101 @@ This guide documents the reusable utilities available in `@thestaticmage/mage-pl
 
 ## Overview
 
-The client library provides five main utilities to reduce boilerplate code in your integrations:
+The client library provides six main utilities to reduce boilerplate code in your integrations:
 
-1. **Script Version Loader** - Determines the version of installed startup scripts
-2. **Firebot Version Checker** - Validates minimum Firebot version requirements
-3. **Reflector Factory** - Creates a custom reflector for IPC communication between backend and frontend
-4. **Error Modal Factory** - Creates custom error dialogs for displaying messages to users
-5. **Startup Scripts Loader** - Retrieves the list of Firebot startup scripts (manages its own reflector singleton)
+1. **Platform Detector** - Detects the platform (Twitch, Kick, YouTube, etc.) from trigger metadata
+2. **Script Version Loader** - Determines the version of installed startup scripts
+3. **Firebot Version Checker** - Validates minimum Firebot version requirements
+4. **Reflector Factory** - Creates a custom reflector for IPC communication between backend and frontend
+5. **Error Modal Factory** - Creates custom error dialogs for displaying messages to users
+6. **Startup Scripts Loader** - Retrieves the list of Firebot startup scripts (manages its own reflector singleton)
+
+## Platform Detector
+
+### Purpose
+
+The platform detector identifies which platform (Twitch, Kick, YouTube, etc.) triggered an event based on trigger metadata. This is useful when your integration needs to handle platform-specific behavior or route operations to the correct platform handler.
+
+### API
+
+```typescript
+function detectPlatform(trigger: Trigger): string
+```
+
+### Parameters
+
+- **trigger** - The trigger object from Firebot (contains metadata about the event source)
+
+### Returns
+
+Platform identifier string: `"twitch"`, `"kick"`, `"youtube"`, `"firebot"`, or `"unknown"`
+
+### Example
+
+```typescript
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
+
+export default {
+    run: async (runRequest) => {
+        const trigger = runRequest.trigger;
+        const platform = detectPlatform(trigger);
+
+        console.log(`Event triggered from platform: ${platform}`);
+
+        switch (platform) {
+            case 'kick':
+                await handleKickEvent(trigger);
+                break;
+            case 'youtube':
+                await handleYouTubeEvent(trigger);
+                break;
+            case 'twitch':
+                await handleTwitchEvent(trigger);
+                break;
+            default:
+                console.log(`Unknown or unsupported platform: ${platform}`);
+        }
+    }
+};
+```
+
+### Detection Strategy
+
+The detector uses a hierarchical priority system to determine the platform:
+
+1. **Explicit Declaration** - `metadata.platform` or `metadata.eventData.platform`
+2. **Event Source ID** - `metadata.eventSource.id`
+3. **Chat Message Patterns** - User ID/username in `metadata.chatMessage`
+4. **Event Data Patterns** - User ID/username in `metadata.eventData`
+5. **Metadata Patterns** - User ID/username at top-level metadata or in `metadata.user`
+
+### Supported Platform Patterns
+
+**Kick:**
+
+- User IDs starting with 'k' (e.g., `"k12345"`)
+- Usernames ending with `"@kick"` (e.g., `"user@kick"`)
+
+**YouTube:**
+
+- User IDs starting with 'y' (e.g., `"yabcdefghijklmnop"`)
+- Usernames ending with `"@youtube"` (e.g., `"user@youtube"`)
+
+**Twitch:**
+
+- Numeric user IDs (e.g., `"123456789"`)
+- No special username patterns
+
+**Custom Platforms:**
+
+- Any unrecognized eventSource.id or platform string is returned as-is
+
+### Features
+
+- **Multi-Level Detection** - Uses hierarchical strategy to handle various metadata formats
+- **Robust Fallback** - Gracefully handles missing or malformed metadata
+- **Extensible** - Returns custom platform identifiers for non-standard platforms
+- **Type Safe** - Works with Firebot's Trigger type
 
 ## Script Version Loader
 

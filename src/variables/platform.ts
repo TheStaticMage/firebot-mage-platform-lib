@@ -1,6 +1,6 @@
 import { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { detectPlatform } from '../platform-detector';
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
 
 /**
  * Platform variable - returns the detected platform for the current trigger

@@ -20,6 +20,7 @@
 
 The client library (`@thestaticmage/mage-platform-lib-client`) exports reusable functions for integrations:
 
+- **`detectPlatform()`**: Detect platform from trigger metadata using hierarchical strategy
 - **`loadScriptVersion()`**: Extract version info from bundled Firebot scripts
 - **`createReflector()`**: Factory for creating custom IPC reflectors with configurable names
 - **`initializeReflector()`**: Convenience function combining reflector registration and initialization

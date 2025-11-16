@@ -79,3 +79,8 @@ export {
     getStartupScripts,
     resetStartupScriptsReflector
 } from './startup-scripts';
+
+// Platform detection
+export {
+    detectPlatform
+} from './platform-detector';
