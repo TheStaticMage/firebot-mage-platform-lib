@@ -561,17 +561,22 @@ async function getStartupScripts(
 ### Basic Example
 
 ```typescript
-import { getStartupScripts } from '@thestaticmage/mage-platform-lib-client';
+import { getStartupScripts, loadScriptVersion } from '@thestaticmage/mage-platform-lib-client';
 
 export default {
     run: async (runRequest) => {
-        const { modules } = runRequest;
+        const { modules, scriptDataDir } = runRequest;
 
         // Get list of startup scripts
         const scripts = await getStartupScripts(modules);
 
         for (const script of scripts) {
-            console.log(`Script: ${script.name} v${script.version}`);
+            console.log(`Script: ${script.name}`);
+            // To get version, use loadScriptVersion with the script's filename
+            if (script.scriptName) {
+                const version = loadScriptVersion(script.scriptName, scriptDataDir, modules);
+                console.log(`  Version: ${version ?? 'unknown'}`);
+            }
         }
     }
 };
@@ -581,23 +586,25 @@ export default {
 
 The function:
 
-1. **Singleton Reflector**: Creates a reflector on first call, reuses it for all subsequent calls
-2. **Automatic Registration**: Automatically registers the reflector UI extension with Firebot
+1. **Cached Results**: Queries scripts on first call, returns cached result for subsequent calls
+2. **Unique Reflectors**: Creates uniquely-named reflectors to avoid registration conflicts when multiple integrations call this function
 3. **Clean Interface**: Hides all the reflector complexity behind a simple async function
-4. **Type Safe**: Returns array of `ScriptManifest` objects with `name`, `version`, `id`, and `scriptName` properties
+4. **Type Safe**: Returns array of `ScriptManifest` objects with `name`, `id`, and `scriptName` properties
+
+**Important**: The `version` field is NOT available in the script manifest. Firebot's startup scripts list does not include version information. To get a script's version, use `loadScriptVersion()` with the `scriptName` property.
 
 ### Multiple Calls
 
-When you call `getStartupScripts()` multiple times, the same reflector is reused:
+When you call `getStartupScripts()` multiple times, the cached result is returned:
 
 ```typescript
-// First call creates reflector, waits for initialization
+// First call creates reflector, queries backend, caches result
 const scripts1 = await getStartupScripts(modules);
 
-// Second call reuses the reflector - no extra initialization
+// Second call returns cached result immediately - no IPC overhead
 const scripts2 = await getStartupScripts(modules);
 
-// Same scripts, faster
+// Same scripts array, much faster
 ```
 
 ### Integration Manifest
@@ -605,21 +612,22 @@ const scripts2 = await getStartupScripts(modules);
 ```typescript
 interface ScriptManifest {
     name: string;          // Display name of the script
-    version?: string;      // Version from getScriptManifest()
     id?: string;           // Unique script ID
     scriptName?: string;   // Filename of the bundled script
 }
 ```
 
+**Note**: Version information is NOT included in the manifest. Use `loadScriptVersion(script.scriptName, scriptDataDir, modules)` to retrieve a script's version.
+
 ### Testing
 
-For testing, there's a `resetStartupScriptsReflector()` function that clears the singleton state:
+For testing, there's a `resetStartupScriptsReflector()` function that clears the cached scripts:
 
 ```typescript
 import { resetStartupScriptsReflector } from '@thestaticmage/mage-platform-lib-client';
 
 afterEach(() => {
-    resetStartupScriptsReflector(); // Clear singleton for next test
+    resetStartupScriptsReflector(); // Clear cache for next test
 });
 ```
 
