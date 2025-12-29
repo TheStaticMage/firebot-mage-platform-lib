@@ -1,8 +1,7 @@
 name: Publish NPM Package on Release
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -28,16 +27,10 @@ jobs:
         with:
           path: packages/client
 
-      - name: Verify version matches release tag
+      - name: Display package version
         run: |
-          RELEASE_TAG="${{ github.event.release.tag_name }}"
           PACKAGE_VERSION="v${{ steps.package-version.outputs.current-version }}"
-          echo "Release tag: $RELEASE_TAG"
           echo "Package version: $PACKAGE_VERSION"
-          if [ "$RELEASE_TAG" != "$PACKAGE_VERSION" ]; then
-            echo "Error: Release tag ($RELEASE_TAG) does not match package version ($PACKAGE_VERSION)"
-            exit 1
-          fi
 
       - name: Build client package
         run: |
