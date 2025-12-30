@@ -24,7 +24,7 @@ Requires Firebot v5.65 or later.
 | ---------- | --------- | --------------------- | ------------- |
 | Twitch | ✓ Built-in | None | N/A |
 | Kick | ✓ Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.10.0+ |
-| YouTube | :construction: Under Development | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | WIP |
+| YouTube | ✓ Via Integration | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.0.1+ |
 
 :bulb: This library adds _no useful functionality_ without at least one of the non-Twitch integrations noted above.
 
