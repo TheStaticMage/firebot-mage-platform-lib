@@ -23,7 +23,7 @@ export interface ChatPlatformEffectModel {
     youtubeMessage: string;
     youtubeSend: 'never' | 'onTrigger' | 'always';
     youtubeReply: boolean;
-    youtubeChatter: 'Streamer' | 'Bot';
+    youtubeChatter: 'Streamer';
 
     // Unknown platform handling
     unknownSendTwitch: boolean;
@@ -128,7 +128,7 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             </eos-container>
 
             <eos-container header="Chat As" pad-top="true">
-                <dropdown-select options="['Streamer', 'Bot']" selected="effect.youtubeChatter"></dropdown-select>
+                <dropdown-select options="['Streamer']" selected="effect.youtubeChatter"></dropdown-select>
             </eos-container>
 
             <eos-container header="Options" pad-top="true">

@@ -834,7 +834,7 @@ describe('chat-platform effect', () => {
                 youtubeMessage: 'test',
                 youtubeSend: 'never',
                 youtubeReply: false,
-                youtubeChatter: 'Bot',
+                youtubeChatter: 'Streamer',
                 unknownSendTwitch: false,
                 unknownSendKick: false,
                 unknownSendYouTube: false
@@ -842,7 +842,7 @@ describe('chat-platform effect', () => {
 
             const chatter = getChatterForPlatform('youtube', effect);
 
-            expect(chatter).toBe('Bot');
+            expect(chatter).toBe('Streamer');
         });
 
         it('should return Twitch chatter for Twitch platform', () => {
