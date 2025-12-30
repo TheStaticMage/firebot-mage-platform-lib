@@ -35,23 +35,8 @@ jobs:
           npm test
       - name: npm install
         run: npm install
-      - name: get-version
-        id: package-version
-        uses: martinbeentjes/npm-get-version-action@v1.3.1
-      - name: check version
-        run: |
-          if [ -z "${{ steps.package-version.outputs.current-version }}" ]; then
-            echo "No version found in package.json"
-            exit 1
-          fi
-          echo "package.json version is ${{ steps.package-version.outputs.current-version }}"
-          platform_version=$(grep '^export const PLATFORM_LIB_VERSION = ' packages/client/src/version.ts | cut -d'"' -f2)
-          echo "PLATFORM_LIB_VERSION is $platform_version"
-          if [ "${{ steps.package-version.outputs.current-version }}" != "$platform_version" ]; then
-            echo "Version in package.json does not match PLATFORM_LIB_VERSION in packages/client/src/version.ts"
-            exit 1
-          fi
-          echo "Version in package.json matches PLATFORM_LIB_VERSION"
+      - name: check version sync
+        run: node scripts/check-version-sync.js
       - name: npm build
         run: npm run build
       - name: Run Jest unit tests
