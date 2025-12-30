@@ -60,6 +60,10 @@ describe('PlatformLibrary', () => {
         mockModules = {
             frontendCommunicator: mockFrontendCommunicator,
             path: pathModule,
+            httpServer: {
+                registerCustomRoute: jest.fn(),
+                unregisterCustomRoute: jest.fn()
+            },
             uiExtensionManager: {
                 registerUIExtension: jest.fn()
             },
