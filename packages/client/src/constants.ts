@@ -23,6 +23,7 @@ export const PLATFORMS = {
  * Integration identifiers (script registration prefixes)
  */
 export const INTEGRATIONS = {
+    PLATFORM_LIB: 'mage-platform-lib',
     KICK: 'firebot-mage-kick-integration',
     YOUTUBE: 'firebot-mage-youtube-integration'
 } as const;

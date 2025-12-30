@@ -70,6 +70,13 @@ export {
     detectPlatform
 } from './platform-detector';
 
+// Platform library ping check
+export {
+    PlatformLibPingResponse,
+    PlatformLibPingResult,
+    checkPlatformLibPing
+} from './platform-lib-ping';
+
 // HTTP route helpers for integrations
 export {
     HttpServer,

@@ -13,6 +13,7 @@ import { IntegrationDetector } from './integration-detector';
 import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
 import { platformRestriction } from './restrictions/platform';
+import { registerRoutes, unregisterRoutes } from './server/server';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
 
@@ -76,6 +77,10 @@ export class PlatformLibrary {
 
             this.logger.debug('Setting up dispatch handlers...');
             this.setupDispatchHandlers();
+
+            // Register server routes
+            this.logger.debug('Registering HTTP endpoint handlers...');
+            registerRoutes(this.modules, this.logger);
 
             // Register features
             this.logger.debug('Registering features...');
@@ -330,7 +335,7 @@ export class PlatformLibrary {
      */
     shutdown(): void {
         this.logger.info('Platform Library shutting down...');
-        // Cleanup if needed
+        unregisterRoutes(this.modules, this.logger);
         this.logger.info('Platform Library shutdown complete');
     }
 }
