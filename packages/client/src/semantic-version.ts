@@ -26,10 +26,28 @@ export function checkSemanticVersion(currentVersion: string, versionRange: strin
         // First try parsing as a clean semver version
         const cleanVersion = semver.clean(currentVersion);
         if (cleanVersion && semver.valid(cleanVersion)) {
+            // For custom build versions (e.g., "5.65.4-Mage20251219045649"),
+            // semver.satisfies() treats them as pre-release versions with lower priority.
+            // However, custom builds should be treated as equivalent to their base version.
+            // We detect custom builds by checking if the pre-release identifier starts with
+            // a non-standard prefix (not alpha, beta, rc, etc.) followed by digits.
+            const parsed = semver.parse(cleanVersion);
+            if (parsed && parsed.prerelease.length > 0) {
+                const prereleaseStr = parsed.prerelease.join('.');
+                // Check if this looks like a custom build (e.g., "Mage20251219045649")
+                // rather than a semantic pre-release (e.g., "beta.1", "alpha", "rc.2")
+                const isCustomBuild = /^[A-Z][a-z]+\d+/.test(prereleaseStr);
+                if (isCustomBuild) {
+                    const coercedVersion = semver.coerce(currentVersion);
+                    if (coercedVersion) {
+                        return semver.satisfies(coercedVersion, versionRange);
+                    }
+                }
+            }
             return semver.satisfies(cleanVersion, versionRange);
         }
 
-        // If that fails, try coercing (for cases like "5.65.4-Mage20251219045649")
+        // If that fails, try coercing
         // But only if the version looks like it has all three components (major.minor.patch)
         // This prevents accepting incomplete versions like "5.65" (missing patch)
         const versionPattern = /^\d+\.\d+\.\d+/;

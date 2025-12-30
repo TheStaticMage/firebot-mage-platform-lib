@@ -92,6 +92,11 @@ describe('checkSemanticVersion', () => {
             expect(result).toBe(true);
         });
 
+        it('should handle custom Firebot builds with pre-release identifiers', () => {
+            const result = checkSemanticVersion('5.65.4-Mage20251219045649', '>= 5.65.3');
+            expect(result).toBe(true);
+        });
+
         it('should reject incomplete version formats', () => {
             const result = checkSemanticVersion('5.65', '>= 5.65.0');
             expect(result).toBe(false);
