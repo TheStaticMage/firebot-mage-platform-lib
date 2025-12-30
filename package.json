@@ -9,6 +9,7 @@
         "build:dev": "npm run build:client && npm install && npm run build:version && npm run build:webpack && npm run copy",
         "build:client": "cd packages/client && npm install && npm run build",
         "build:version": "node ./scripts/update-version.js",
+        "check:version": "node ./scripts/check-version-sync.js",
         "build:webpack": "webpack",
         "copy": "node ./scripts/copy-build.js",
         "prepare": "",
