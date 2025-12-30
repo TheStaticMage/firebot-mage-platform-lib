@@ -25,7 +25,7 @@ export const PLATFORMS = {
 export const INTEGRATIONS = {
     PLATFORM_LIB: 'mage-platform-lib',
     KICK: 'firebot-mage-kick-integration',
-    YOUTUBE: 'firebot-mage-youtube-integration'
+    YOUTUBE: 'mage-youtube-integration'
 } as const;
 
 /**
