@@ -51,7 +51,7 @@ export const platformRestriction: RestrictionType<PlatformRestrictionModel> = {
             </div>
         </div>
     `,
-    optionsController($scope) {
+    optionsController: ($scope) => {
         const restriction = $scope.restriction as unknown as PlatformRestrictionModel;
         if (restriction.comparison == null) {
             restriction.comparison = 'is';
@@ -60,7 +60,7 @@ export const platformRestriction: RestrictionType<PlatformRestrictionModel> = {
             restriction.platform = 'any';
         }
     },
-    optionsValueDisplay(restriction) {
+    optionsValueDisplay: (restriction) => {
         const comparison = restriction.comparison === 'is' ? 'is' : 'is not';
         let platformDisplay: string;
 
