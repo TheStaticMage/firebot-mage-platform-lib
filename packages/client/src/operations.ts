@@ -20,6 +20,23 @@ export interface SendChatMessageRequest {
      * Optional message ID to reply to
      */
     replyId?: string;
+
+    /**
+     * Optional chatter type (Streamer or Bot)
+     */
+    chatter?: 'Streamer' | 'Bot';
+
+    /**
+     * Optional send mode for stream-aware sending
+     * Only applicable to integrations that support it
+     */
+    sendMode?: 'always' | 'when-connected' | 'when-live';
+
+    /**
+     * Optional flag to send to chat feed when message is not sent
+     * Only applicable to integrations that support it
+     */
+    sendToChatFeed?: boolean;
 }
 
 export interface SendChatMessageResponse {

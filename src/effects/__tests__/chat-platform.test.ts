@@ -19,7 +19,25 @@ const mockLogger = {
     warn: jest.fn()
 };
 
+const mockTwitchApi = {
+    streams: {
+        getStreamersCurrentStream: jest.fn()
+    }
+};
+
+const mockFrontendCommunicator = {
+    send: jest.fn()
+};
+
+const mockFirebot = {
+    modules: {
+        twitchApi: mockTwitchApi,
+        frontendCommunicator: mockFrontendCommunicator
+    }
+};
+
 jest.mock('../../main', () => ({
+    firebot: mockFirebot,
     logger: mockLogger,
     platformLib: {
         integrationDetector: mockIntegrationDetector,
@@ -33,7 +51,9 @@ import {
     determinePlatformTargets,
     getMessageForPlatform,
     getReplyIdForPlatform,
-    getChatterForPlatform
+    getChatterForPlatform,
+    shouldSendToTwitch,
+    sendToChatFeed
 } from '../chat-platform';
 
 describe('chat-platform effect', () => {
@@ -62,9 +82,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const errors = validator(effect);
@@ -89,9 +107,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const errors = validator(effect);
@@ -122,9 +138,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -170,9 +184,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -218,9 +230,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -266,9 +276,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -312,9 +320,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: true,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'twitch'
             };
 
             const trigger: Trigger = {
@@ -362,9 +368,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -405,9 +409,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -442,7 +444,7 @@ describe('chat-platform effect', () => {
             const effect = chatPlatformEffect;
 
             // Mock kick to fail, others to succeed
-            mockDispatcher.dispatchOperation.mockImplementation((operation, platform) => {
+            mockDispatcher.dispatchOperation.mockImplementation((_, platform) => {
                 if (platform === 'kick') {
                     return Promise.reject(new Error('Kick API error'));
                 }
@@ -465,9 +467,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -509,9 +509,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const targets = determinePlatformTargets('twitch', effect);
@@ -538,9 +536,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const targets = determinePlatformTargets('kick', effect);
@@ -567,9 +563,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const targets = determinePlatformTargets('kick', effect);
@@ -596,9 +590,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const message = getMessageForPlatform('kick', effect);
@@ -623,9 +615,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const message = getMessageForPlatform('youtube', effect);
@@ -650,9 +640,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const message = getMessageForPlatform('twitch', effect);
@@ -679,9 +667,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -717,9 +703,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -755,9 +739,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -792,9 +774,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -826,9 +806,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -858,9 +836,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -896,9 +872,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const trigger: Trigger = {
@@ -935,9 +909,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const chatter = getChatterForPlatform('kick', effect);
@@ -962,9 +934,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const chatter = getChatterForPlatform('youtube', effect);
@@ -989,9 +959,7 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const chatter = getChatterForPlatform('twitch', effect);
@@ -1016,14 +984,393 @@ describe('chat-platform effect', () => {
                 youtubeReply: false,
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: true,
-                unknownSendTwitch: false,
-                unknownSendKick: false,
-                unknownSendYouTube: false
+                unknownPlatformTarget: 'none'
             };
 
             const chatter = getChatterForPlatform('twitch', effect);
 
             expect(chatter).toBe('Streamer');
+        });
+    });
+
+    describe('shouldSendToTwitch', () => {
+        it('should return true when globalSendMode is not set', async () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none'
+            };
+
+            const result = await shouldSendToTwitch(effect);
+
+            expect(result.shouldSend).toBe(true);
+        });
+
+        it('should return true for always mode', async () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'always'
+            };
+
+            const result = await shouldSendToTwitch(effect);
+
+            expect(result.shouldSend).toBe(true);
+        });
+
+        it('should return true for when-connected mode', async () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'when-connected'
+            };
+
+            const result = await shouldSendToTwitch(effect);
+
+            expect(result.shouldSend).toBe(true);
+        });
+
+        it('should return true for when-live mode when stream is live', async () => {
+            mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue({ startDate: new Date() } as any);
+
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'when-live'
+            };
+
+            const result = await shouldSendToTwitch(effect);
+
+            expect(result.shouldSend).toBe(true);
+        });
+
+        it('should return false for when-live mode when stream is offline', async () => {
+            mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue(null);
+
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'when-live'
+            };
+
+            const result = await shouldSendToTwitch(effect);
+
+            expect(result.shouldSend).toBe(false);
+            expect(result.reason).toBe('Stream offline');
+        });
+    });
+
+    describe('onTriggerEvent with globalSendMode and sendToChatFeed', () => {
+        it('should send to chat feed for Twitch when stream is offline and sendToChatFeed is true', async () => {
+            mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue(null);
+            mockIntegrationDetector.isIntegrationDetected.mockReturnValue(false);
+
+            const effect = chatPlatformEffect;
+
+            const effectModel: ChatPlatformEffectModel = {
+                twitchMessage: 'Hello Twitch!',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'when-live',
+                sendToChatFeed: true
+            };
+
+            const trigger: Trigger = {
+                type: 'event',
+                metadata: {
+                    username: 'testuser',
+                    platform: 'twitch'
+                }
+            };
+
+            await effect.onTriggerEvent({
+                effect: effectModel,
+                trigger,
+                sendDataToOverlay: jest.fn(),
+                abortSignal: new AbortController().signal
+            });
+
+            expect(mockDispatcher.dispatchOperation).not.toHaveBeenCalled();
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'chatUpdate',
+                expect.objectContaining({
+                    fbEvent: 'ChatAlert',
+                    message: expect.stringContaining('Hello Twitch!'),
+                    icon: 'fad fa-exclamation-triangle'
+                })
+            );
+        });
+
+        it('should not send to chat feed for Twitch when sendToChatFeed is false', async () => {
+            mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue(null);
+            mockIntegrationDetector.isIntegrationDetected.mockReturnValue(false);
+
+            const effect = chatPlatformEffect;
+
+            const effectModel: ChatPlatformEffectModel = {
+                twitchMessage: 'Hello Twitch!',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'when-live',
+                sendToChatFeed: false
+            };
+
+            const trigger: Trigger = {
+                type: 'event',
+                metadata: {
+                    username: 'testuser',
+                    platform: 'twitch'
+                }
+            };
+
+            await effect.onTriggerEvent({
+                effect: effectModel,
+                trigger,
+                sendDataToOverlay: jest.fn(),
+                abortSignal: new AbortController().signal
+            });
+
+            expect(mockDispatcher.dispatchOperation).not.toHaveBeenCalled();
+            expect(mockFrontendCommunicator.send).not.toHaveBeenCalled();
+        });
+
+        it('should pass sendMode and sendToChatFeed to Kick integration', async () => {
+            mockIntegrationDetector.isIntegrationDetected.mockImplementation(platform => platform === 'kick');
+
+            const effect = chatPlatformEffect;
+
+            const effectModel: ChatPlatformEffectModel = {
+                twitchMessage: '',
+                twitchSend: 'never',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: false,
+                kickMessage: 'Hello Kick!',
+                kickSend: 'onTrigger',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: true,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                globalSendMode: 'when-live',
+                sendToChatFeed: true
+            };
+
+            const trigger: Trigger = {
+                type: 'event',
+                metadata: {
+                    username: 'testuser@kick',
+                    platform: 'kick'
+                }
+            };
+
+            await effect.onTriggerEvent({
+                effect: effectModel,
+                trigger,
+                sendDataToOverlay: jest.fn(),
+                abortSignal: new AbortController().signal
+            });
+
+            expect(mockDispatcher.dispatchOperation).toHaveBeenCalledWith(
+                'send-chat-message',
+                'kick',
+                expect.objectContaining({
+                    message: 'Hello Kick!',
+                    sendMode: 'when-live',
+                    sendToChatFeed: true
+                })
+            );
+        });
+    });
+
+    describe('sendToChatFeed', () => {
+        it('should send message to chat feed with reason', async () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'Hello Twitch!',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none'
+            };
+
+            await sendToChatFeed(effect, 'Stream offline');
+
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'chatUpdate',
+                expect.objectContaining({
+                    fbEvent: 'ChatAlert',
+                    message: expect.stringContaining('Hello Twitch!'),
+                    icon: 'fad fa-exclamation-triangle'
+                })
+            );
+        });
+
+        it('should include reason in chat feed message', async () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'Twitch message',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none'
+            };
+
+            await sendToChatFeed(effect, 'Status check failed');
+
+            expect(mockFrontendCommunicator.send).toHaveBeenCalledWith(
+                'chatUpdate',
+                expect.objectContaining({
+                    message: expect.stringContaining('Status check failed')
+                })
+            );
+        });
+
+        it('should handle errors when sending to chat feed', async () => {
+            mockFrontendCommunicator.send.mockImplementation(() => {
+                throw new Error('Chat feed error');
+            });
+
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: '',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: '',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none'
+            };
+
+            await expect(sendToChatFeed(effect, 'Error')).resolves.not.toThrow();
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to send to chat feed'));
         });
     });
 });

@@ -1,7 +1,7 @@
 import { Effects } from '@crowbartools/firebot-custom-scripts-types/types/effects';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
-import { logger, platformLib } from '../main';
+import { firebot, logger, platformLib } from '../main';
 
 /**
  * Effect model for platform-aware chat effect
@@ -31,9 +31,11 @@ export interface ChatPlatformEffectModel {
     youtubeEnabled: boolean;
 
     // Unknown platform handling
-    unknownSendTwitch: boolean;
-    unknownSendKick: boolean;
-    unknownSendYouTube: boolean;
+    unknownPlatformTarget?: 'none' | 'twitch' | 'kick' | 'youtube';
+
+    // Global send controls
+    globalSendMode?: 'always' | 'when-connected' | 'when-live';
+    sendToChatFeed?: boolean;
 }
 
 export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
@@ -46,8 +48,7 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
         dependencies: ['chat']
     },
     optionsTemplate: `
-        <eos-container header="Platform" pad-top="true">
-            <p>Select which platforms to configure for this effect:</p>
+        <eos-container header="Platforms" pad-top="true">
             <div style="display: flex; flex-direction: row; width: 100%; margin: 10px 0;">
                 <firebot-checkbox
                     label="Twitch"
@@ -169,28 +170,35 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             </eos-container>
         </eos-container>
 
-        <eos-container header="Unknown Platform Handling" pad-top="true">
-            <firebot-checkbox
-                    label="Send to Twitch"
-                    tooltip="Send to Twitch if platform is unknown."
-                    model="effect.unknownSendTwitch"
+        <eos-container header="Options" pad-top="true">
+            <eos-container header="Overrides and Conditions" pad-top="true">
+                <p class="muted">Restrict when messages are sent:</p>
+                <dropdown-select
+                    options="{
+                        always: 'Send regardless of connection or stream status',
+                        'when-connected': 'Only when integration is connected',
+                        'when-live': 'Only when stream is live'
+                    }"
+                    selected="effect.globalSendMode">
+                </dropdown-select>
+
+                <p class="muted" style="margin-top: 10px;">If a message cannot be sent due to the above restrictions, optionally send it to the chat feed instead:</p>
+
+                <firebot-checkbox
+                    label="Send to chat feed when not sent to platform"
+                    model="effect.sendToChatFeed"
                     style="margin: 0px 15px 0px 0px"
-                    ng-if="effect.twitchEnabled"
                 />
-            <firebot-checkbox
-                    label="Send to Kick"
-                    tooltip="Send to Kick if platform is unknown."
-                    model="effect.unknownSendKick"
-                    style="margin: 0px 15px 0px 0px"
-                    ng-if="hasKick && effect.kickEnabled"
-                />
-            <firebot-checkbox
-                    label="Send to YouTube"
-                    tooltip="Send to YouTube if platform is unknown."
-                    model="effect.unknownSendYouTube"
-                    style="margin: 0px 15px 0px 0px"
-                    ng-if="hasYouTube && effect.youtubeEnabled"
-                />
+            </eos-container>
+
+            <eos-container header="Unknown Platform" pad-top="true">
+                <p class="muted">When a trigger is received from an unknown platform, treat the message as if it came from this platform:</p>
+                <dropdown-select
+                    options="unknownPlatformOptions"
+                    selected="effect.unknownPlatformTarget"
+                    placeholder="Select platform for unknown triggers">
+                </dropdown-select>
+            </eos-container>
         </eos-container>
     `,
     optionsController: ($scope, backendCommunicator: any, logger: any) => {
@@ -206,32 +214,6 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             // Set platform availability flags
             $scope.hasKick = response.platforms.includes('kick');
             $scope.hasYouTube = response.platforms.includes('youtube');
-
-            // Backward compatibility: Infer enabled flags from message content
-            if ($scope.effect.twitchEnabled == null) {
-                $scope.effect.twitchEnabled = true; // Twitch always defaults to enabled
-            }
-
-            if ($scope.hasKick && $scope.effect.kickEnabled == null) {
-                // If there's a Kick message, assume the checkbox was checked
-                $scope.effect.kickEnabled = Boolean($scope.effect.kickMessage && $scope.effect.kickMessage.trim() !== '');
-            }
-
-            if ($scope.hasYouTube && $scope.effect.youtubeEnabled == null) {
-                // If there's a YouTube message, assume the checkbox was checked
-                $scope.effect.youtubeEnabled = Boolean($scope.effect.youtubeMessage && $scope.effect.youtubeMessage.trim() !== '');
-            }
-
-            // Initialize Twitch defaults if not set
-            if ($scope.effect.twitchSend == null) {
-                $scope.effect.twitchSend = 'onTrigger';
-            }
-            if ($scope.effect.twitchReply == null) {
-                $scope.effect.twitchReply = false;
-            }
-            if ($scope.effect.twitchChatter == null) {
-                $scope.effect.twitchChatter = 'Streamer';
-            }
 
             if ($scope.hasKick && $scope.effect.kickEnabled) {
                 if ($scope.effect.kickSend == null) {
@@ -262,6 +244,47 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             }
         } else {
             logger.error('Invalid response from platform-lib:get-available-platforms');
+        }
+
+        // Initialize Twitch defaults if not set
+        if ($scope.effect.twitchEnabled == null) {
+            $scope.effect.twitchEnabled = true; // Twitch always defaults to enabled
+        }
+
+        if ($scope.effect.twitchSend == null) {
+            $scope.effect.twitchSend = 'onTrigger';
+        }
+        if ($scope.effect.twitchReply == null) {
+            $scope.effect.twitchReply = false;
+        }
+        if ($scope.effect.twitchChatter == null) {
+            $scope.effect.twitchChatter = 'Streamer';
+        }
+
+        // Initialize other defaults
+        if ($scope.effect.globalSendMode == null) {
+            $scope.effect.globalSendMode = 'always';
+        }
+
+        if ($scope.effect.sendToChatFeed == null) {
+            $scope.effect.sendToChatFeed = false;
+        }
+
+        // Build unknown platform dropdown options
+        const unknownOptions: Record<string, string> = { none: 'None' };
+        if ($scope.effect.twitchEnabled) {
+            unknownOptions.twitch = 'Twitch';
+        }
+        if ($scope.hasKick && $scope.effect.kickEnabled) {
+            unknownOptions.kick = 'Kick';
+        }
+        if ($scope.hasYouTube && $scope.effect.youtubeEnabled) {
+            unknownOptions.youtube = 'YouTube';
+        }
+        $scope.unknownPlatformOptions = unknownOptions;
+
+        if (!$scope.effect.unknownPlatformTarget) {
+            $scope.effect.unknownPlatformTarget = 'none';
         }
     },
     optionsValidator: (effect) => {
@@ -306,16 +329,42 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
 
                 logger.debug(`Sending message to ${platform}: ${message.substring(0, 50)}...`);
 
+                const request: any = { message, chatter, replyId };
+
+                // For Twitch, check if we should send based on global mode
+                if (platform === 'twitch') {
+                    const { shouldSend, reason } = await shouldSendToTwitch(effect);
+
+                    if (!shouldSend) {
+                        logger.debug(`Skipping Twitch: ${reason}`);
+
+                        // Send to chat feed if enabled (only for Twitch since we control it)
+                        if (effect.sendToChatFeed) {
+                            await sendToChatFeed(effect, reason || 'Unknown');
+                        }
+                        continue;
+                    }
+                }
+
+                // For Kick/YouTube, pass send mode and chat feed flag to let integration decide
+                if (platform !== 'twitch') {
+                    if (effect.globalSendMode) {
+                        request.sendMode = effect.globalSendMode;
+                    }
+                    if (effect.sendToChatFeed) {
+                        request.sendToChatFeed = true;
+                    }
+                }
+
                 await platformLib.platformDispatcher.dispatchOperation(
                     'send-chat-message',
                     platform,
-                    { message, chatter, replyId }
+                    request
                 );
 
                 logger.debug(`Message sent successfully to ${platform}`);
             } catch (error) {
                 logger.error(`Failed to send message to ${platform}: ${error}`);
-                // Continue to next platform
             }
         }
 
@@ -363,17 +412,15 @@ export function determinePlatformTargets(
     }
 
     // Handle unknown platform
-    if (platform === 'unknown') {
-        if (effect.twitchEnabled && !targets.includes('twitch') && effect.unknownSendTwitch) {
-            targets.push('twitch');
-        }
-        if (effect.kickEnabled && platformLib.integrationDetector.isIntegrationDetected('kick')) {
-            if (!targets.includes('kick') && effect.unknownSendKick) {
+    if (platform === 'unknown' && effect.unknownPlatformTarget && effect.unknownPlatformTarget !== 'none') {
+        const target = effect.unknownPlatformTarget;
+        if (!targets.includes(target)) {
+            // Verify the target platform is enabled and available
+            if (target === 'twitch' && effect.twitchEnabled) {
+                targets.push('twitch');
+            } else if (target === 'kick' && effect.kickEnabled && platformLib.integrationDetector.isIntegrationDetected('kick')) {
                 targets.push('kick');
-            }
-        }
-        if (effect.youtubeEnabled && platformLib.integrationDetector.isIntegrationDetected('youtube')) {
-            if (!targets.includes('youtube') && effect.unknownSendYouTube) {
+            } else if (target === 'youtube' && effect.youtubeEnabled && platformLib.integrationDetector.isIntegrationDetected('youtube')) {
                 targets.push('youtube');
             }
         }
@@ -469,4 +516,65 @@ export function getChatterForPlatform(platform: string, effect: ChatPlatformEffe
         return effect.youtubeChatter || 'Streamer';
     }
     return effect.twitchChatter || 'Streamer';
+}
+
+/**
+ * Determines if a message should be sent to Twitch based on global send mode
+ * @param effect Effect settings
+ * @returns Object with shouldSend boolean and optional reason
+ */
+export async function shouldSendToTwitch(
+    effect: ChatPlatformEffectModel
+): Promise<{ shouldSend: boolean; reason?: string }> {
+    if (!effect.globalSendMode) {
+        return { shouldSend: true };
+    }
+
+    if (effect.globalSendMode === 'always') {
+        return { shouldSend: true };
+    }
+
+    if (effect.globalSendMode === 'when-connected') {
+        return { shouldSend: true };
+    }
+
+    if (effect.globalSendMode === 'when-live') {
+        const { twitchApi } = firebot.modules;
+        try {
+            const stream = await twitchApi.streams.getStreamersCurrentStream();
+            if (!stream) {
+                return { shouldSend: false, reason: 'Stream offline' };
+            }
+            return { shouldSend: true };
+        } catch (error) {
+            logger.error(`Failed to check stream status: ${error}`);
+            return { shouldSend: false, reason: 'Status check failed' };
+        }
+    }
+
+    return { shouldSend: true };
+}
+
+/**
+ * Sends a message to the Firebot chat feed as a fallback when Twitch message cannot be sent
+ * @param effect Effect settings
+ * @param failedPlatforms Array of platforms that failed to send
+ */
+export async function sendToChatFeed(
+    effect: ChatPlatformEffectModel,
+    reasonText: string
+): Promise<void> {
+    try {
+        const { frontendCommunicator } = firebot.modules;
+
+        frontendCommunicator.send("chatUpdate", {
+            fbEvent: "ChatAlert",
+            message: `[Not sent (Twitch): ${reasonText}] ${effect.twitchMessage}`,
+            icon: "fad fa-exclamation-triangle"
+        });
+
+        logger.debug('Sent message to chat feed as fallback');
+    } catch (error) {
+        logger.error(`Failed to send to chat feed: ${error}`);
+    }
 }
