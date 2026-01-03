@@ -25,6 +25,11 @@ export interface ChatPlatformEffectModel {
     youtubeReply: boolean;
     youtubeChatter: 'Streamer';
 
+    // Platform enable/disable flags
+    twitchEnabled: boolean;
+    kickEnabled: boolean;
+    youtubeEnabled: boolean;
+
     // Unknown platform handling
     unknownSendTwitch: boolean;
     unknownSendKick: boolean;
@@ -41,7 +46,30 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
         dependencies: ['chat']
     },
     optionsTemplate: `
-        <eos-container header="Twitch Chat Settings" pad-top="true">
+        <eos-container header="Platform" pad-top="true">
+            <p>Select which platforms to configure for this effect:</p>
+            <div style="display: flex; flex-direction: row; width: 100%; margin: 10px 0;">
+                <firebot-checkbox
+                    label="Twitch"
+                    model="effect.twitchEnabled"
+                    style="margin: 0px 15px 0px 0px"
+                />
+                <firebot-checkbox
+                    label="Kick"
+                    model="effect.kickEnabled"
+                    style="margin: 0px 15px 0px 0px"
+                    ng-if="hasKick"
+                />
+                <firebot-checkbox
+                    label="YouTube"
+                    model="effect.youtubeEnabled"
+                    style="margin: 0px 15px 0px 0px"
+                    ng-if="hasYouTube"
+                />
+            </div>
+        </eos-container>
+
+        <eos-container header="Twitch Chat Settings" pad-top="true" ng-if="effect.twitchEnabled">
             <eos-container header="Message" pad-top="true">
                 <firebot-input
                     model="effect.twitchMessage"
@@ -76,7 +104,7 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             <p><a href="https://github.com/TheStaticMage/firebot-mage-kick-integration" target="_blank">https://github.com/TheStaticMage/firebot-mage-kick-integration</a></p>
         </eos-container>
 
-        <eos-container header="Kick Chat Settings" pad-top="true" ng-if="hasKick">
+        <eos-container header="Kick Chat Settings" pad-top="true" ng-if="hasKick && effect.kickEnabled">
             <eos-container header="Message" pad-top="true">
                 <firebot-input
                     model="effect.kickMessage"
@@ -111,7 +139,7 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             <p><a href="https://github.com/TheStaticMage/firebot-mage-youtube-integration" target="_blank">https://github.com/TheStaticMage/firebot-mage-youtube-integration</a></p>
         </eos-container>
 
-        <eos-container header="YouTube Chat Settings" pad-top="true" ng-if="hasYouTube">
+        <eos-container header="YouTube Chat Settings" pad-top="true" ng-if="hasYouTube && effect.youtubeEnabled">
             <eos-container header="Message" pad-top="true">
                 <firebot-input
                     model="effect.youtubeMessage"
@@ -147,20 +175,21 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
                     tooltip="Send to Twitch if platform is unknown."
                     model="effect.unknownSendTwitch"
                     style="margin: 0px 15px 0px 0px"
+                    ng-if="effect.twitchEnabled"
                 />
             <firebot-checkbox
                     label="Send to Kick"
                     tooltip="Send to Kick if platform is unknown."
                     model="effect.unknownSendKick"
                     style="margin: 0px 15px 0px 0px"
-                    ng-if="hasKick"
+                    ng-if="hasKick && effect.kickEnabled"
                 />
             <firebot-checkbox
                     label="Send to YouTube"
                     tooltip="Send to YouTube if platform is unknown."
                     model="effect.unknownSendYouTube"
                     style="margin: 0px 15px 0px 0px"
-                    ng-if="hasYouTube"
+                    ng-if="hasYouTube && effect.youtubeEnabled"
                 />
         </eos-container>
     `,
@@ -178,6 +207,21 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
             $scope.hasKick = response.platforms.includes('kick');
             $scope.hasYouTube = response.platforms.includes('youtube');
 
+            // Backward compatibility: Infer enabled flags from message content
+            if ($scope.effect.twitchEnabled == null) {
+                $scope.effect.twitchEnabled = true; // Twitch always defaults to enabled
+            }
+
+            if ($scope.hasKick && $scope.effect.kickEnabled == null) {
+                // If there's a Kick message, assume the checkbox was checked
+                $scope.effect.kickEnabled = Boolean($scope.effect.kickMessage && $scope.effect.kickMessage.trim() !== '');
+            }
+
+            if ($scope.hasYouTube && $scope.effect.youtubeEnabled == null) {
+                // If there's a YouTube message, assume the checkbox was checked
+                $scope.effect.youtubeEnabled = Boolean($scope.effect.youtubeMessage && $scope.effect.youtubeMessage.trim() !== '');
+            }
+
             // Initialize Twitch defaults if not set
             if ($scope.effect.twitchSend == null) {
                 $scope.effect.twitchSend = 'onTrigger';
@@ -189,7 +233,7 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
                 $scope.effect.twitchChatter = 'Streamer';
             }
 
-            if ($scope.hasKick) {
+            if ($scope.hasKick && $scope.effect.kickEnabled) {
                 if ($scope.effect.kickSend == null) {
                     $scope.effect.kickSend = 'onTrigger';
                 }
@@ -203,7 +247,7 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
                 $scope.effect.kickSend = 'never';
             }
 
-            if ($scope.hasYouTube) {
+            if ($scope.hasYouTube && $scope.effect.youtubeEnabled) {
                 if ($scope.effect.youtubeSend == null) {
                     $scope.effect.youtubeSend = 'onTrigger';
                 }
@@ -223,18 +267,23 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
     optionsValidator: (effect) => {
         const errors: string[] = [];
 
-        // Validate Twitch message if sending
-        if (effect.twitchSend !== 'never' && (!effect.twitchMessage || effect.twitchMessage.trim() === '')) {
+        // Ensure at least one platform is enabled
+        if (!effect.twitchEnabled && !effect.kickEnabled && !effect.youtubeEnabled) {
+            errors.push('At least one platform must be enabled');
+        }
+
+        // Validate Twitch message only if enabled and sending
+        if (effect.twitchEnabled && effect.twitchSend !== 'never' && (!effect.twitchMessage || effect.twitchMessage.trim() === '')) {
             errors.push('Twitch message cannot be blank when sending is enabled');
         }
 
-        // Validate Kick message if sending
-        if (effect.kickSend !== 'never' && (!effect.kickMessage || effect.kickMessage.trim() === '')) {
+        // Validate Kick message only if enabled and sending
+        if (effect.kickEnabled && effect.kickSend !== 'never' && (!effect.kickMessage || effect.kickMessage.trim() === '')) {
             errors.push('Kick message cannot be blank when sending is enabled');
         }
 
-        // Validate YouTube message if sending
-        if (effect.youtubeSend !== 'never' && (!effect.youtubeMessage || effect.youtubeMessage.trim() === '')) {
+        // Validate YouTube message only if enabled and sending
+        if (effect.youtubeEnabled && effect.youtubeSend !== 'never' && (!effect.youtubeMessage || effect.youtubeMessage.trim() === '')) {
             errors.push('YouTube message cannot be blank when sending is enabled');
         }
 
@@ -286,15 +335,17 @@ export function determinePlatformTargets(
 ): string[] {
     const targets: string[] = [];
 
-    // Twitch
-    if (effect.twitchSend === 'always') {
-        targets.push('twitch');
-    } else if (effect.twitchSend === 'onTrigger' && platform === 'twitch') {
-        targets.push('twitch');
+    // Twitch (only if enabled)
+    if (effect.twitchEnabled) {
+        if (effect.twitchSend === 'always') {
+            targets.push('twitch');
+        } else if (effect.twitchSend === 'onTrigger' && platform === 'twitch') {
+            targets.push('twitch');
+        }
     }
 
-    // Kick (only if integration is detected)
-    if (platformLib.integrationDetector.isIntegrationDetected('kick')) {
+    // Kick (only if enabled and integration is detected)
+    if (effect.kickEnabled && platformLib.integrationDetector.isIntegrationDetected('kick')) {
         if (effect.kickSend === 'always') {
             targets.push('kick');
         } else if (effect.kickSend === 'onTrigger' && platform === 'kick') {
@@ -302,8 +353,8 @@ export function determinePlatformTargets(
         }
     }
 
-    // YouTube (only if integration is detected)
-    if (platformLib.integrationDetector.isIntegrationDetected('youtube')) {
+    // YouTube (only if enabled and integration is detected)
+    if (effect.youtubeEnabled && platformLib.integrationDetector.isIntegrationDetected('youtube')) {
         if (effect.youtubeSend === 'always') {
             targets.push('youtube');
         } else if (effect.youtubeSend === 'onTrigger' && platform === 'youtube') {
@@ -313,15 +364,15 @@ export function determinePlatformTargets(
 
     // Handle unknown platform
     if (platform === 'unknown') {
-        if (!targets.includes('twitch') && effect.unknownSendTwitch) {
+        if (effect.twitchEnabled && !targets.includes('twitch') && effect.unknownSendTwitch) {
             targets.push('twitch');
         }
-        if (platformLib.integrationDetector.isIntegrationDetected('kick')) {
+        if (effect.kickEnabled && platformLib.integrationDetector.isIntegrationDetected('kick')) {
             if (!targets.includes('kick') && effect.unknownSendKick) {
                 targets.push('kick');
             }
         }
-        if (platformLib.integrationDetector.isIntegrationDetected('youtube')) {
+        if (effect.youtubeEnabled && platformLib.integrationDetector.isIntegrationDetected('youtube')) {
             if (!targets.includes('youtube') && effect.unknownSendYouTube) {
                 targets.push('youtube');
             }
