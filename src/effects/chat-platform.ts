@@ -302,26 +302,37 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
     getDefaultLabel: (effect) => {
         const platforms: string[] = [];
         if (effect.twitchEnabled) {
-            platforms.push('Twitch');
+            if (effect.twitchSend === 'always') {
+                platforms.push('Twitch');
+            } else if (effect.twitchSend === 'onTrigger') {
+                platforms.push('Twitch[trigger]');
+            }
         }
         if (effect.kickEnabled) {
-            platforms.push('Kick');
+            if (effect.kickSend === 'always') {
+                platforms.push('Kick');
+            } else if (effect.kickSend === 'onTrigger') {
+                platforms.push('Kick[trigger]');
+            }
         }
         if (effect.youtubeEnabled) {
-            platforms.push('YouTube');
+            if (effect.youtubeSend === 'always') {
+                platforms.push('YouTube');
+            } else if (effect.youtubeSend === 'onTrigger') {
+                platforms.push('YouTube[trigger]');
+            }
         }
         if (platforms.length === 0) {
             return '(No Platforms Enabled)';
         }
 
-        let qualifier = 'Always Send';
         if (effect.offlineSendMode === 'chat-feed-only') {
-            qualifier = 'Send to Chat Feed if Offline';
+            return `${platforms.join(', ')} | Offline -> Chat Feed`;
         } else if (effect.offlineSendMode === 'do-not-send') {
-            qualifier = 'Do Not Send if Offline';
+            return `${platforms.join(', ')} | Offline -> Do Not Send`;
         }
 
-        return `${platforms.join(', ')}: ${qualifier}`;
+        return platforms.join(', ');
     },
     onTriggerEvent: async ({ effect, trigger }) => {
         const detectedPlatform = detectPlatform(trigger);

@@ -6,7 +6,7 @@ This is a [Firebot](https://firebot.app) plugin that provides centralized platfo
 
 - Platform Variable (`$platform`) - Detects the platform from event context
 - Platform-Aware User Display Name Variable (`$platformAwareUserDisplayName`) - Resolve usernames across platforms
-- Platform-Aware Chat Effect - Send messages to specific platforms or all platforms
+- [Platform-Aware Chat Effect](/doc/effects/chat-platform.md) - Send messages to specific platforms or all platforms
 - Platform Condition - Conditional logic based on platform
 - Platform Filter - Filter events by platform
 - Platform Restriction - Restrict effects to specific platforms
@@ -17,14 +17,15 @@ Requires Firebot v5.65 or later.
 
 - [Installation](/doc/installation.md)
 - [Upgrading](/doc/upgrading.md)
+- [Chat (Multi-Platform) effect](/doc/effects/chat-platform.md)
 
 ## Supported Platforms
 
 | Platform | Support | Required Integration | Min Version |
 | ---------- | --------- | --------------------- | ------------- |
 | Twitch | ✓ Built-in | None | N/A |
-| Kick | ✓ Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.10.0+ |
-| YouTube | ✓ Via Integration | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.0.1+ |
+| Kick | ✓ Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.10.1+ |
+| YouTube | ✓ Via Integration | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.0.2+ |
 
 :bulb: This library adds _no useful functionality_ without at least one of the non-Twitch integrations noted above.
 
