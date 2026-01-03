@@ -64,6 +64,8 @@ jobs:
           add-paths: |
             package.json
             package-lock.json
-            src/main.ts
+            packages/client/package.json
+            packages/client/package-lock.json
+            packages/client/src/version.ts
           commit-message: "Bump version to ${{ steps.bump_version.outputs.next-version }}"
           reviewers: "TheStaticMage"
