@@ -27,16 +27,9 @@ export interface SendChatMessageRequest {
     chatter?: 'Streamer' | 'Bot';
 
     /**
-     * Optional send mode for stream-aware sending
-     * Only applicable to integrations that support it
+     * Optional mode for when the stream is offline
      */
-    sendMode?: 'always' | 'when-connected' | 'when-live';
-
-    /**
-     * Optional flag to send to chat feed when message is not sent
-     * Only applicable to integrations that support it
-     */
-    sendToChatFeed?: boolean;
+    offlineSendMode?: 'send-anyway' | 'chat-feed-only' | 'do-not-send';
 }
 
 export interface SendChatMessageResponse {
