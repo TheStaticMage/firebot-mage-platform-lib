@@ -299,6 +299,30 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
 
         return errors;
     },
+    getDefaultLabel: (effect) => {
+        const platforms: string[] = [];
+        if (effect.twitchEnabled) {
+            platforms.push('Twitch');
+        }
+        if (effect.kickEnabled) {
+            platforms.push('Kick');
+        }
+        if (effect.youtubeEnabled) {
+            platforms.push('YouTube');
+        }
+        if (platforms.length === 0) {
+            return '(No Platforms Enabled)';
+        }
+
+        let qualifier = 'Always Send';
+        if (effect.offlineSendMode === 'chat-feed-only') {
+            qualifier = 'Send to Chat Feed if Offline';
+        } else if (effect.offlineSendMode === 'do-not-send') {
+            qualifier = 'Do Not Send if Offline';
+        }
+
+        return `${platforms.join(', ')}: ${qualifier}`;
+    },
     onTriggerEvent: async ({ effect, trigger }) => {
         const detectedPlatform = detectPlatform(trigger);
         logger.debug(`Detected platform: ${detectedPlatform}`);
