@@ -32,7 +32,7 @@ The Platform Library provides built-in support for Twitch and can be extended wi
 | Platform | Support | Required Integration | Min Version |
 | --- | --- | --- | --- |
 | Twitch | Built-in | None | N/A |
-| Kick | Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.10.0+ |
-| YouTube | Under Development | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | WIP |
+| Kick | Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.10.1+ |
+| YouTube | Under Development | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.0.2+ |
 
 To enable Kick or YouTube support, install the corresponding platform integration plugin before or after installing this plugin.

@@ -116,6 +116,112 @@ describe('chat-platform effect', () => {
         });
     });
 
+    describe('getDefaultLabel', () => {
+        const getDefaultLabel = chatPlatformEffect.getDefaultLabel as (effect: ChatPlatformEffectModel) => string;
+
+        it('should return a no platforms message when none are enabled', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'never',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: false,
+                kickMessage: 'test',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: 'test',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none'
+            };
+
+            const label = getDefaultLabel(effect);
+
+            expect(label).toBe('(No Platforms Enabled)');
+        });
+
+        it('should include offline chat feed label when chat-feed-only is selected', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'always',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: 'test',
+                kickSend: 'onTrigger',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: true,
+                youtubeMessage: 'test',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none',
+                offlineSendMode: 'chat-feed-only'
+            };
+
+            const label = getDefaultLabel(effect);
+
+            expect(label).toBe('Twitch, Kick[trigger] | Offline -> Chat Feed');
+        });
+
+        it('should include offline do not send label when do-not-send is selected', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'onTrigger',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: 'test',
+                kickSend: 'never',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: false,
+                youtubeMessage: 'test',
+                youtubeSend: 'always',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: true,
+                unknownPlatformTarget: 'none',
+                offlineSendMode: 'do-not-send'
+            };
+
+            const label = getDefaultLabel(effect);
+
+            expect(label).toBe('Twitch[trigger], YouTube | Offline -> Do Not Send');
+        });
+
+        it('should exclude platforms set to never even when enabled', () => {
+            const effect: ChatPlatformEffectModel = {
+                twitchMessage: 'test',
+                twitchSend: 'never',
+                twitchReply: false,
+                twitchChatter: 'Streamer',
+                twitchEnabled: true,
+                kickMessage: 'test',
+                kickSend: 'always',
+                kickReply: false,
+                kickChatter: 'Streamer',
+                kickEnabled: true,
+                youtubeMessage: 'test',
+                youtubeSend: 'never',
+                youtubeReply: false,
+                youtubeChatter: 'Streamer',
+                youtubeEnabled: false,
+                unknownPlatformTarget: 'none'
+            };
+
+            const label = getDefaultLabel(effect);
+
+            expect(label).toBe('Kick');
+        });
+    });
+
     describe('onTriggerEvent', () => {
         it('should send to Twitch when triggered from Twitch with onTrigger mode', async () => {
             mockIntegrationDetector.isIntegrationDetected.mockReturnValue(false);
