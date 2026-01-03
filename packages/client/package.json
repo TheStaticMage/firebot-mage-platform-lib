@@ -1,6 +1,6 @@
 {
     "name": "@thestaticmage/mage-platform-lib-client",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Client library with shared TypeScript types for the Mage Platform Library and integrations",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
