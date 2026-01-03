@@ -33,9 +33,8 @@ export interface ChatPlatformEffectModel {
     // Unknown platform handling
     unknownPlatformTarget?: 'none' | 'twitch' | 'kick' | 'youtube';
 
-    // Global send controls
-    globalSendMode?: 'always' | 'when-connected' | 'when-live';
-    sendToChatFeed?: boolean;
+    // Offline sending controls
+    offlineSendMode?: 'send-anyway' | 'chat-feed-only' | 'do-not-send';
 }
 
 export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
@@ -171,24 +170,16 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
         </eos-container>
 
         <eos-container header="Options" pad-top="true">
-            <eos-container header="Overrides and Conditions" pad-top="true">
-                <p class="muted">Restrict when messages are sent:</p>
+            <eos-container header="Offline Sending" pad-top="true">
+                <p class="muted">When stream is offline, choose what to do:</p>
                 <dropdown-select
                     options="{
-                        always: 'Send regardless of connection or stream status',
-                        'when-connected': 'Only when integration is connected',
-                        'when-live': 'Only when stream is live'
+                        'send-anyway': 'Send message to the platform anyway',
+                        'chat-feed-only': 'Post message in Firebot chat feed',
+                        'do-not-send': 'Do not send message'
                     }"
-                    selected="effect.globalSendMode">
+                    selected="effect.offlineSendMode">
                 </dropdown-select>
-
-                <p class="muted" style="margin-top: 10px;">If a message cannot be sent due to the above restrictions, optionally send it to the chat feed instead:</p>
-
-                <firebot-checkbox
-                    label="Send to chat feed when not sent to platform"
-                    model="effect.sendToChatFeed"
-                    style="margin: 0px 15px 0px 0px"
-                />
             </eos-container>
 
             <eos-container header="Unknown Platform" pad-top="true">
@@ -262,12 +253,8 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
         }
 
         // Initialize other defaults
-        if ($scope.effect.globalSendMode == null) {
-            $scope.effect.globalSendMode = 'always';
-        }
-
-        if ($scope.effect.sendToChatFeed == null) {
-            $scope.effect.sendToChatFeed = false;
+        if ($scope.effect.offlineSendMode == null) {
+            $scope.effect.offlineSendMode = 'send-anyway';
         }
 
         // Build unknown platform dropdown options
@@ -331,29 +318,24 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
 
                 const request: any = { message, chatter, replyId };
 
-                // For Twitch, check if we should send based on global mode
+                // For Twitch, check if we should send based on offline send mode
                 if (platform === 'twitch') {
                     const { shouldSend, reason } = await shouldSendToTwitch(effect);
 
                     if (!shouldSend) {
                         logger.debug(`Skipping Twitch: ${reason}`);
 
-                        // Send to chat feed if enabled (only for Twitch since we control it)
-                        if (effect.sendToChatFeed) {
+                        // Send to chat feed if configured (only for Twitch since we control it)
+                        if (effect.offlineSendMode === 'chat-feed-only') {
                             await sendToChatFeed(effect, reason || 'Unknown');
                         }
                         continue;
                     }
                 }
 
-                // For Kick/YouTube, pass send mode and chat feed flag to let integration decide
+                // For Kick/YouTube, pass send mode to let integration decide
                 if (platform !== 'twitch') {
-                    if (effect.globalSendMode) {
-                        request.sendMode = effect.globalSendMode;
-                    }
-                    if (effect.sendToChatFeed) {
-                        request.sendToChatFeed = true;
-                    }
+                    request.offlineSendMode = effect.offlineSendMode ?? 'send-anyway';
                 }
 
                 await platformLib.platformDispatcher.dispatchOperation(
@@ -519,37 +501,31 @@ export function getChatterForPlatform(platform: string, effect: ChatPlatformEffe
 }
 
 /**
- * Determines if a message should be sent to Twitch based on global send mode
+ * Determines if a message should be sent to Twitch based on offline send mode
  * @param effect Effect settings
  * @returns Object with shouldSend boolean and optional reason
  */
 export async function shouldSendToTwitch(
     effect: ChatPlatformEffectModel
 ): Promise<{ shouldSend: boolean; reason?: string }> {
-    if (!effect.globalSendMode) {
+    if (!effect.offlineSendMode) {
         return { shouldSend: true };
     }
 
-    if (effect.globalSendMode === 'always') {
+    if (effect.offlineSendMode === 'send-anyway') {
         return { shouldSend: true };
     }
 
-    if (effect.globalSendMode === 'when-connected') {
-        return { shouldSend: true };
-    }
-
-    if (effect.globalSendMode === 'when-live') {
-        const { twitchApi } = firebot.modules;
-        try {
-            const stream = await twitchApi.streams.getStreamersCurrentStream();
-            if (!stream) {
-                return { shouldSend: false, reason: 'Stream offline' };
-            }
-            return { shouldSend: true };
-        } catch (error) {
-            logger.error(`Failed to check stream status: ${error}`);
-            return { shouldSend: false, reason: 'Status check failed' };
+    const { twitchApi } = firebot.modules;
+    try {
+        const stream = await twitchApi.streams.getStreamersCurrentStream();
+        if (!stream) {
+            return { shouldSend: false, reason: 'Stream offline' };
         }
+        return { shouldSend: true };
+    } catch (error) {
+        logger.error(`Failed to check stream status: ${error}`);
+        return { shouldSend: false, reason: 'Status check failed' };
     }
 
     return { shouldSend: true };

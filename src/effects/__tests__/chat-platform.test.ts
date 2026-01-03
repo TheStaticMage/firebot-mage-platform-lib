@@ -205,7 +205,7 @@ describe('chat-platform effect', () => {
             expect(mockDispatcher.dispatchOperation).toHaveBeenCalledWith(
                 'send-chat-message',
                 'kick',
-                { message: 'Hello Kick!', chatter: 'Streamer', replyId: undefined }
+                { message: 'Hello Kick!', chatter: 'Streamer', replyId: undefined, offlineSendMode: 'send-anyway' }
             );
         });
 
@@ -251,7 +251,7 @@ describe('chat-platform effect', () => {
             expect(mockDispatcher.dispatchOperation).toHaveBeenCalledWith(
                 'send-chat-message',
                 'youtube',
-                { message: 'Hello YouTube!', chatter: 'Streamer', replyId: undefined }
+                { message: 'Hello YouTube!', chatter: 'Streamer', replyId: undefined, offlineSendMode: 'send-anyway' }
             );
         });
 
@@ -994,7 +994,7 @@ describe('chat-platform effect', () => {
     });
 
     describe('shouldSendToTwitch', () => {
-        it('should return true when globalSendMode is not set', async () => {
+        it('should return true when offlineSendMode is not set', async () => {
             const effect: ChatPlatformEffectModel = {
                 twitchMessage: 'test',
                 twitchSend: 'onTrigger',
@@ -1019,7 +1019,7 @@ describe('chat-platform effect', () => {
             expect(result.shouldSend).toBe(true);
         });
 
-        it('should return true for always mode', async () => {
+        it('should return true for send-anyway mode', async () => {
             const effect: ChatPlatformEffectModel = {
                 twitchMessage: 'test',
                 twitchSend: 'onTrigger',
@@ -1037,7 +1037,7 @@ describe('chat-platform effect', () => {
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
                 unknownPlatformTarget: 'none',
-                globalSendMode: 'always'
+                offlineSendMode: 'send-anyway'
             };
 
             const result = await shouldSendToTwitch(effect);
@@ -1045,33 +1045,7 @@ describe('chat-platform effect', () => {
             expect(result.shouldSend).toBe(true);
         });
 
-        it('should return true for when-connected mode', async () => {
-            const effect: ChatPlatformEffectModel = {
-                twitchMessage: 'test',
-                twitchSend: 'onTrigger',
-                twitchReply: false,
-                twitchChatter: 'Streamer',
-                twitchEnabled: true,
-                kickMessage: '',
-                kickSend: 'never',
-                kickReply: false,
-                kickChatter: 'Streamer',
-                kickEnabled: false,
-                youtubeMessage: '',
-                youtubeSend: 'never',
-                youtubeReply: false,
-                youtubeChatter: 'Streamer',
-                youtubeEnabled: false,
-                unknownPlatformTarget: 'none',
-                globalSendMode: 'when-connected'
-            };
-
-            const result = await shouldSendToTwitch(effect);
-
-            expect(result.shouldSend).toBe(true);
-        });
-
-        it('should return true for when-live mode when stream is live', async () => {
+        it('should return true for chat-feed-only mode when stream is live', async () => {
             mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue({ startDate: new Date() } as any);
 
             const effect: ChatPlatformEffectModel = {
@@ -1091,7 +1065,7 @@ describe('chat-platform effect', () => {
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
                 unknownPlatformTarget: 'none',
-                globalSendMode: 'when-live'
+                offlineSendMode: 'chat-feed-only'
             };
 
             const result = await shouldSendToTwitch(effect);
@@ -1099,7 +1073,7 @@ describe('chat-platform effect', () => {
             expect(result.shouldSend).toBe(true);
         });
 
-        it('should return false for when-live mode when stream is offline', async () => {
+        it('should return false for do-not-send mode when stream is offline', async () => {
             mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue(null);
 
             const effect: ChatPlatformEffectModel = {
@@ -1119,7 +1093,7 @@ describe('chat-platform effect', () => {
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
                 unknownPlatformTarget: 'none',
-                globalSendMode: 'when-live'
+                offlineSendMode: 'do-not-send'
             };
 
             const result = await shouldSendToTwitch(effect);
@@ -1129,8 +1103,8 @@ describe('chat-platform effect', () => {
         });
     });
 
-    describe('onTriggerEvent with globalSendMode and sendToChatFeed', () => {
-        it('should send to chat feed for Twitch when stream is offline and sendToChatFeed is true', async () => {
+    describe('onTriggerEvent with offlineSendMode', () => {
+        it('should send to chat feed for Twitch when stream is offline and chat-feed-only is selected', async () => {
             mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue(null);
             mockIntegrationDetector.isIntegrationDetected.mockReturnValue(false);
 
@@ -1153,8 +1127,7 @@ describe('chat-platform effect', () => {
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
                 unknownPlatformTarget: 'none',
-                globalSendMode: 'when-live',
-                sendToChatFeed: true
+                offlineSendMode: 'chat-feed-only'
             };
 
             const trigger: Trigger = {
@@ -1183,7 +1156,7 @@ describe('chat-platform effect', () => {
             );
         });
 
-        it('should not send to chat feed for Twitch when sendToChatFeed is false', async () => {
+        it('should not send to chat feed for Twitch when do-not-send is selected', async () => {
             mockTwitchApi.streams.getStreamersCurrentStream.mockResolvedValue(null);
             mockIntegrationDetector.isIntegrationDetected.mockReturnValue(false);
 
@@ -1206,8 +1179,7 @@ describe('chat-platform effect', () => {
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
                 unknownPlatformTarget: 'none',
-                globalSendMode: 'when-live',
-                sendToChatFeed: false
+                offlineSendMode: 'do-not-send'
             };
 
             const trigger: Trigger = {
@@ -1229,7 +1201,7 @@ describe('chat-platform effect', () => {
             expect(mockFrontendCommunicator.send).not.toHaveBeenCalled();
         });
 
-        it('should pass sendMode and sendToChatFeed to Kick integration', async () => {
+        it('should pass offlineSendMode to Kick integration', async () => {
             mockIntegrationDetector.isIntegrationDetected.mockImplementation(platform => platform === 'kick');
 
             const effect = chatPlatformEffect;
@@ -1251,8 +1223,7 @@ describe('chat-platform effect', () => {
                 youtubeChatter: 'Streamer',
                 youtubeEnabled: false,
                 unknownPlatformTarget: 'none',
-                globalSendMode: 'when-live',
-                sendToChatFeed: true
+                offlineSendMode: 'chat-feed-only'
             };
 
             const trigger: Trigger = {
@@ -1275,8 +1246,7 @@ describe('chat-platform effect', () => {
                 'kick',
                 expect.objectContaining({
                     message: 'Hello Kick!',
-                    sendMode: 'when-live',
-                    sendToChatFeed: true
+                    offlineSendMode: 'chat-feed-only'
                 })
             );
         });
