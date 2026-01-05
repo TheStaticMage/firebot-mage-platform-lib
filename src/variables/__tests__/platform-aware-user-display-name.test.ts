@@ -187,7 +187,9 @@ describe('platformAwareUserDisplayName variable', () => {
                 profilePicUrl: '',
                 lastSeen: Date.now(),
                 currency: {},
-                metadata: {}
+                metadata: {},
+                chatMessages: 0,
+                minutesInChannel: 0
             });
 
             const result = await variable.evaluator(trigger);
@@ -270,7 +272,9 @@ describe('platformAwareUserDisplayName variable', () => {
                 profilePicUrl: '',
                 lastSeen: Date.now(),
                 currency: {},
-                metadata: {}
+                metadata: {},
+                chatMessages: 0,
+                minutesInChannel: 0
             });
 
             const result = await variable.evaluator(trigger);

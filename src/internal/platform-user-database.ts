@@ -297,7 +297,9 @@ export class PlatformUserDatabase {
             profilePicUrl: profilePicUrl || '',
             lastSeen: Date.now(),
             currency: {},
-            metadata: {}
+            metadata: {},
+            chatMessages: 0,
+            minutesInChannel: 0
         };
 
         return await db.insertAsync(newUser);
@@ -439,6 +441,35 @@ export class PlatformUserDatabase {
     }
 
     /**
+     * Increment a numeric metadata value for a user.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param key Metadata key.
+     * @param amount Delta to apply (can be negative).
+     * @returns New value after increment.
+     */
+    async incrementUserMetadata(platform: string, userId: string, key: string, amount: number): Promise<number> {
+        try {
+            this.validatePlatform(platform);
+
+            // Get current value (treat non-numeric as 0)
+            const currentValue = await this.getUserMetadata(platform, userId, key);
+            const numericValue = typeof currentValue === 'number' ? currentValue : 0;
+
+            // Calculate new value
+            const newValue = numericValue + amount;
+
+            // Set new value
+            await this.setUserMetadata(platform, userId, key, newValue);
+
+            return newValue;
+        } catch (error) {
+            this.logger.debug(`Failed to increment user metadata: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
      * Update a single field for a user.
      * @param platform Platform identifier.
      * @param userId Platform-prefixed user ID.
@@ -466,6 +497,128 @@ export class PlatformUserDatabase {
      */
     async updateLastSeen(platform: string, userId: string): Promise<void> {
         await this.updateUserField(platform, userId, 'lastSeen', Date.now());
+    }
+
+    /**
+     * Get a user's chat message count.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @returns Count or 0 when missing or invalid.
+     */
+    async getChatMessages(platform: string, userId: string): Promise<number> {
+        try {
+            this.validatePlatform(platform);
+            const db = this.ensureDb();
+            const normalizedUserId = this.validateUserId(userId);
+            const user = await db.findOneAsync({ _id: normalizedUserId });
+            const count = user?.chatMessages;
+            return typeof count === 'number' && !isNaN(count) ? count : 0;
+        } catch (error) {
+            this.logger.debug(`Failed to get chat messages: ${error}`);
+            return 0;
+        }
+    }
+
+    /**
+     * Set a user's chat message count.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param count Count to set (clamped to non-negative).
+     */
+    async setChatMessages(platform: string, userId: string, count: number): Promise<void> {
+        try {
+            this.validatePlatform(platform);
+            const db = this.ensureDb();
+            const normalizedUserId = this.validateUserId(userId);
+            const clampedCount = Math.max(0, count);
+            await db.updateAsync(
+                { _id: normalizedUserId },
+                { $set: { chatMessages: clampedCount } }
+            );
+        } catch (error) {
+            this.logger.debug(`Failed to set chat messages: ${error}`);
+        }
+    }
+
+    /**
+     * Increment a user's chat message count.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param amount Delta to apply (can be negative, result clamped to non-negative).
+     * @returns New count after increment.
+     */
+    async incrementChatMessages(platform: string, userId: string, amount: number): Promise<number> {
+        try {
+            this.validatePlatform(platform);
+            const current = await this.getChatMessages(platform, userId);
+            const newCount = Math.max(0, current + amount);
+            await this.setChatMessages(platform, userId, newCount);
+            return newCount;
+        } catch (error) {
+            this.logger.debug(`Failed to increment chat messages: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Get a user's minutes in channel.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @returns Minutes or 0 when missing or invalid.
+     */
+    async getMinutesInChannel(platform: string, userId: string): Promise<number> {
+        try {
+            this.validatePlatform(platform);
+            const db = this.ensureDb();
+            const normalizedUserId = this.validateUserId(userId);
+            const user = await db.findOneAsync({ _id: normalizedUserId });
+            const minutes = user?.minutesInChannel;
+            return typeof minutes === 'number' && !isNaN(minutes) ? minutes : 0;
+        } catch (error) {
+            this.logger.debug(`Failed to get minutes in channel: ${error}`);
+            return 0;
+        }
+    }
+
+    /**
+     * Set a user's minutes in channel.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param minutes Minutes to set (clamped to non-negative).
+     */
+    async setMinutesInChannel(platform: string, userId: string, minutes: number): Promise<void> {
+        try {
+            this.validatePlatform(platform);
+            const db = this.ensureDb();
+            const normalizedUserId = this.validateUserId(userId);
+            const clampedMinutes = Math.max(0, minutes);
+            await db.updateAsync(
+                { _id: normalizedUserId },
+                { $set: { minutesInChannel: clampedMinutes } }
+            );
+        } catch (error) {
+            this.logger.debug(`Failed to set minutes in channel: ${error}`);
+        }
+    }
+
+    /**
+     * Increment a user's minutes in channel.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param amount Delta to apply (can be negative, result clamped to non-negative).
+     * @returns New minutes after increment.
+     */
+    async incrementMinutesInChannel(platform: string, userId: string, amount: number): Promise<number> {
+        try {
+            this.validatePlatform(platform);
+            const current = await this.getMinutesInChannel(platform, userId);
+            const newMinutes = Math.max(0, current + amount);
+            await this.setMinutesInChannel(platform, userId, newMinutes);
+            return newMinutes;
+        } catch (error) {
+            this.logger.debug(`Failed to increment minutes in channel: ${error}`);
+            throw error;
+        }
     }
 
     private ensureDb(): Datastore<PlatformUser> {

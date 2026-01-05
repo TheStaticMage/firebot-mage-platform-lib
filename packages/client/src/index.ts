@@ -35,6 +35,27 @@ export {
 export type {
     SendChatMessageRequest,
     SendChatMessageResponse,
+    PlatformUser,
+    GetUserByIdRequest,
+    GetUserByIdResponse,
+    GetUserByUsernameRequest,
+    GetUserByUsernameResponse,
+    GetOrCreateUserRequest,
+    GetOrCreateUserResponse,
+    SetUserMetadataRequest,
+    SetUserMetadataResponse,
+    IncrementUserMetadataRequest,
+    IncrementUserMetadataResponse,
+    UpdateLastSeenRequest,
+    UpdateLastSeenResponse,
+    SetChatMessagesRequest,
+    SetChatMessagesResponse,
+    IncrementChatMessagesRequest,
+    IncrementChatMessagesResponse,
+    SetMinutesInChannelRequest,
+    SetMinutesInChannelResponse,
+    IncrementMinutesInChannelRequest,
+    IncrementMinutesInChannelResponse,
     OperationName
 } from './operations';
 

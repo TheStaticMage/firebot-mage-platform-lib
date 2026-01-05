@@ -119,6 +119,8 @@ describe('PlatformUserDatabase', () => {
         expect(created.username).toBe('testuser');
         expect(created.displayName).toBe('testuser');
         expect(created.lastSeen).toBe(Date.now());
+        expect(created.chatMessages).toBe(0);
+        expect(created.minutesInChannel).toBe(0);
         expect(mockDb.insertAsync).toHaveBeenCalledTimes(1);
 
         jest.useRealTimers();
@@ -278,5 +280,379 @@ describe('PlatformUserDatabase', () => {
         ]);
 
         expect(mockDb.updateAsync).toHaveBeenCalledTimes(2);
+    });
+
+    it('increments numeric metadata by positive amount', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: { customValue: 5 },
+            chatMessages: 0,
+            minutesInChannel: 0
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        const newValue = await db.incrementUserMetadata('kick', 'k123', 'customValue', 3);
+
+        expect(newValue).toBe(8);
+        expect(mockDb.updateAsync).toHaveBeenCalledWith(
+            { _id: 'k123' },
+            { $set: { 'metadata.customValue': 8 } }
+        );
+    });
+
+    it('increments numeric metadata by negative amount', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: { customValue: 5 },
+            chatMessages: 0,
+            minutesInChannel: 0
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        const newValue = await db.incrementUserMetadata('kick', 'k123', 'customValue', -2);
+
+        expect(newValue).toBe(3);
+        expect(mockDb.updateAsync).toHaveBeenCalledWith(
+            { _id: 'k123' },
+            { $set: { 'metadata.customValue': 3 } }
+        );
+    });
+
+    it('treats missing metadata key as 0', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: {}
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        const newValue = await db.incrementUserMetadata('kick', 'k123', 'newKey', 5);
+
+        expect(newValue).toBe(5);
+    });
+
+    it('treats non-numeric metadata value as 0', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: { customValue: 'string' },
+            chatMessages: 0,
+            minutesInChannel: 0
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        const newValue = await db.incrementUserMetadata('kick', 'k123', 'customValue', 10);
+
+        expect(newValue).toBe(10);
+    });
+
+    it('throws error for invalid platform in increment', async () => {
+        const mockDb = createMockDb();
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        await expect(db.incrementUserMetadata('twitch', 'k123', 'test', 1)).rejects.toThrow();
+    });
+
+    describe('chatMessages operations', () => {
+        it('gets chat messages count', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 42,
+                minutesInChannel: 0
+            });
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const count = await db.getChatMessages('kick', 'k123');
+            expect(count).toBe(42);
+        });
+
+        it('returns zero when chatMessages is missing', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                minutesInChannel: 0
+            });
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const count = await db.getChatMessages('kick', 'k123');
+            expect(count).toBe(0);
+        });
+
+        it('sets chat messages count', async () => {
+            const mockDb = createMockDb();
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            await db.setChatMessages('kick', 'k123', 10);
+
+            expect(mockDb.updateAsync).toHaveBeenCalledWith(
+                { _id: 'k123' },
+                { $set: { chatMessages: 10 } }
+            );
+        });
+
+        it('clamps negative chat messages to zero', async () => {
+            const mockDb = createMockDb();
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            await db.setChatMessages('kick', 'k123', -5);
+
+            expect(mockDb.updateAsync).toHaveBeenCalledWith(
+                { _id: 'k123' },
+                { $set: { chatMessages: 0 } }
+            );
+        });
+
+        it('increments chat messages by positive amount', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 5,
+                minutesInChannel: 0
+            });
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const newValue = await db.incrementChatMessages('kick', 'k123', 3);
+
+            expect(newValue).toBe(8);
+            expect(mockDb.updateAsync).toHaveBeenCalledWith(
+                { _id: 'k123' },
+                { $set: { chatMessages: 8 } }
+            );
+        });
+
+        it('increments chat messages by negative amount', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 5,
+                minutesInChannel: 0
+            });
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const newValue = await db.incrementChatMessages('kick', 'k123', -2);
+
+            expect(newValue).toBe(3);
+        });
+
+        it('clamps negative result to zero when incrementing', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 5,
+                minutesInChannel: 0
+            });
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const newValue = await db.incrementChatMessages('kick', 'k123', -10);
+
+            expect(newValue).toBe(0);
+        });
+
+        it('treats missing chatMessages as 0 when incrementing', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                minutesInChannel: 0
+            });
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const newValue = await db.incrementChatMessages('kick', 'k123', 5);
+
+            expect(newValue).toBe(5);
+        });
+    });
+
+    describe('minutesInChannel operations', () => {
+        it('gets minutes in channel', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 0,
+                minutesInChannel: 120
+            });
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const minutes = await db.getMinutesInChannel('kick', 'k123');
+            expect(minutes).toBe(120);
+        });
+
+        it('returns zero when minutesInChannel is missing', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 0
+            });
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const minutes = await db.getMinutesInChannel('kick', 'k123');
+            expect(minutes).toBe(0);
+        });
+
+        it('sets minutes in channel', async () => {
+            const mockDb = createMockDb();
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            await db.setMinutesInChannel('kick', 'k123', 60);
+
+            expect(mockDb.updateAsync).toHaveBeenCalledWith(
+                { _id: 'k123' },
+                { $set: { minutesInChannel: 60 } }
+            );
+        });
+
+        it('clamps negative minutes to zero', async () => {
+            const mockDb = createMockDb();
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            await db.setMinutesInChannel('kick', 'k123', -10);
+
+            expect(mockDb.updateAsync).toHaveBeenCalledWith(
+                { _id: 'k123' },
+                { $set: { minutesInChannel: 0 } }
+            );
+        });
+
+        it('increments minutes in channel', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 0,
+                minutesInChannel: 100
+            });
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const newValue = await db.incrementMinutesInChannel('kick', 'k123', 15);
+
+            expect(newValue).toBe(115);
+        });
+
+        it('treats missing minutesInChannel as 0 when incrementing', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 0
+            });
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const newValue = await db.incrementMinutesInChannel('kick', 'k123', 30);
+
+            expect(newValue).toBe(30);
+        });
     });
 });
