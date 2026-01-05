@@ -104,6 +104,16 @@ export function registerRoutes(modules: ScriptModules, logger: LogWrapper) {
                     return;
                 }
 
+                const existingUser = await platformLib.userDatabase.getUser(
+                    platform as string,
+                    userId as string
+                );
+
+                if (existingUser) {
+                    res.json({ success: true, user: existingUser, created: false });
+                    return;
+                }
+
                 const user = await platformLib.userDatabase.getOrCreateUser(
                     platform as string,
                     userId as string,
@@ -112,7 +122,7 @@ export function registerRoutes(modules: ScriptModules, logger: LogWrapper) {
                     profilePicUrl as string | undefined
                 );
 
-                res.json({ success: true, user });
+                res.json({ success: true, user, created: true });
             } catch (error) {
                 logger.error(`users/get-or-create operation failed: ${error}`);
                 res.status(500).json({

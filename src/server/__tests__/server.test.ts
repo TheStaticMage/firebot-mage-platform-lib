@@ -184,7 +184,9 @@ describe('REST Endpoints', () => {
             const route = routes.find(r => r.route === 'users/get-or-create');
             const handler = route?.handler;
             const mockUser = { _id: 'k123', username: 'user', displayName: 'User', profilePicUrl: 'pic.png', lastSeen: 0, currency: {}, metadata: {} };
+            const getUserMock = platformLib.userDatabase.getUser as jest.Mock;
             const getOrCreateUserMock = platformLib.userDatabase.getOrCreateUser as jest.Mock;
+            getUserMock.mockResolvedValue(null);
             getOrCreateUserMock.mockResolvedValue(mockUser);
 
             const req = {
@@ -202,7 +204,8 @@ describe('REST Endpoints', () => {
                 await handler(req, res);
             }
 
-            expect(res.json).toHaveBeenCalledWith({ success: true, user: mockUser });
+            expect(res.json).toHaveBeenCalledWith({ success: true, user: mockUser, created: true });
+            expect(getUserMock).toHaveBeenCalledWith('kick', 'k123');
             expect(getOrCreateUserMock).toHaveBeenCalledWith(
                 'kick',
                 'k123',
@@ -210,6 +213,35 @@ describe('REST Endpoints', () => {
                 'User',
                 'pic.png'
             );
+        });
+
+        it('returns existing user when found', async () => {
+            const modules = { httpServer: mockHttpServer } as any;
+            registerRoutes(modules, logger);
+
+            const route = routes.find(r => r.route === 'users/get-or-create');
+            const handler = route?.handler;
+            const mockUser = { _id: 'k123', username: 'user', displayName: 'User', profilePicUrl: 'pic.png', lastSeen: 0, currency: {}, metadata: {} };
+            const getUserMock = platformLib.userDatabase.getUser as jest.Mock;
+            const getOrCreateUserMock = platformLib.userDatabase.getOrCreateUser as jest.Mock;
+            getUserMock.mockResolvedValue(mockUser);
+
+            const req = {
+                body: {
+                    platform: 'kick',
+                    userId: 'k123',
+                    username: 'user'
+                }
+            };
+            const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+
+            if (handler) {
+                await handler(req, res);
+            }
+
+            expect(res.json).toHaveBeenCalledWith({ success: true, user: mockUser, created: false });
+            expect(getUserMock).toHaveBeenCalledWith('kick', 'k123');
+            expect(getOrCreateUserMock).not.toHaveBeenCalled();
         });
 
         it('returns error when required fields missing', async () => {

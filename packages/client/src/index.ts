@@ -89,6 +89,20 @@ export {
     detectPlatform
 } from './platform-detector';
 
+// User operation helpers
+export {
+    getUserById,
+    getUserByUsername,
+    getOrCreateUser,
+    setUserMetadata,
+    incrementUserMetadata,
+    updateLastSeen,
+    setChatMessages,
+    incrementChatMessages,
+    setMinutesInChannel,
+    incrementMinutesInChannel
+} from './user-operations';
+
 // Platform library ping check
 export {
     PlatformLibPingResponse,
