@@ -8,14 +8,18 @@ import {
 import { platformCondition } from './conditions/platform';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { chatPlatformEffect } from './effects/chat-platform';
+import { updatePlatformUserCurrencyEffect } from './effects/update-platform-user-currency';
 import { platformFilter } from './filters/platform';
 import { IntegrationDetector } from './integration-detector';
+import { PlatformUserDatabase } from './internal/platform-user-database';
 import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
 import { platformRestriction } from './restrictions/platform';
 import { registerRoutes, unregisterRoutes } from './server/server';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
+import { createPlatformCurrencyVariable } from './variables/platform-currency';
+import { createPlatformCurrencyByUserIdVariable } from './variables/platform-currency-by-user-id';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -25,6 +29,7 @@ export class PlatformLibrary {
     private modules: ScriptModules;
     integrationDetector: IntegrationDetector;
     platformDispatcher: PlatformDispatcher;
+    public userDatabase: PlatformUserDatabase;
     private criticalErrors: string[] = [];
     private showErrorModal: (title: string, message: string) => Promise<void>;
 
@@ -47,6 +52,8 @@ export class PlatformLibrary {
             modules,
             logger
         );
+
+        this.userDatabase = new PlatformUserDatabase(scriptDataDir, logger);
     }
 
     /**
@@ -81,6 +88,16 @@ export class PlatformLibrary {
             // Register server routes
             this.logger.debug('Registering HTTP endpoint handlers...');
             registerRoutes(this.modules, this.logger);
+
+            // Initialize platform user database
+            this.logger.debug('Initializing platform user database...');
+            try {
+                await this.userDatabase.initialize();
+            } catch (error) {
+                const errorMsg = `Failed to initialize platform user database: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(errorMsg);
+            }
 
             // Register features
             this.logger.debug('Registering features...');
@@ -275,6 +292,38 @@ export class PlatformLibrary {
             failureCount++;
         }
 
+        // Register platform currency by user ID variable
+        try {
+            const platformCurrencyByUserIdVariable = createPlatformCurrencyByUserIdVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformCurrencyByUserIdVariable);
+            this.logger.debug('Registered platform currency by user ID variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform currency by user ID variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform currency by user ID variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform currency variable
+        try {
+            const platformCurrencyVariable = createPlatformCurrencyVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformCurrencyVariable);
+            this.logger.debug('Registered platform currency variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform currency variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform currency variable registration failed. ${error}`);
+            failureCount++;
+        }
+
         // Register filter
         try {
             eventFilterManager.registerFilter(platformFilter);
@@ -320,6 +369,18 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register platform-aware chat effect: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform-aware chat effect registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform user currency effect
+        try {
+            effectManager.registerEffect(updatePlatformUserCurrencyEffect);
+            this.logger.debug('Registered platform user currency effect');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform user currency effect: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform user currency effect registration failed. ${error}`);
             failureCount++;
         }
 

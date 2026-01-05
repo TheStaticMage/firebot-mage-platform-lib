@@ -35,6 +35,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
+        "@seald-io/nedb": "^4.0.4",
         "@thestaticmage/mage-platform-lib-client": "file:packages/client",
         "axios": "^1.6.0",
         "semver": "^7.6.0"

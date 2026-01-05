@@ -4,6 +4,14 @@ import * as startupScriptsModule from '@thestaticmage/mage-platform-lib-client';
 import { PlatformLibrary } from '../platform-library';
 import { LogWrapper } from '../main';
 
+const mockUserDatabase = {
+    initialize: jest.fn().mockResolvedValue(undefined)
+};
+
+jest.mock('../internal/platform-user-database', () => ({
+    PlatformUserDatabase: jest.fn().mockImplementation(() => mockUserDatabase)
+}));
+
 jest.mock('@thestaticmage/mage-platform-lib-client', () => ({
     ...jest.requireActual('@thestaticmage/mage-platform-lib-client'),
     getStartupScripts: jest.fn().mockResolvedValue([]),
@@ -120,16 +128,16 @@ describe('PlatformLibrary', () => {
         it('should register all features', async () => {
             await platformLib.initialize();
 
-            // Should register 2 variables
-            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(2);
+            // Should register 4 variables
+            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(4);
             // Should register 1 filter
             expect(mockModules.eventFilterManager.registerFilter).toHaveBeenCalledTimes(1);
             // Should register 1 condition (platform)
             expect(mockModules.conditionManager.registerConditionType).toHaveBeenCalledTimes(1);
             // Should register 1 restriction
             expect(mockModules.restrictionManager.registerRestriction).toHaveBeenCalledTimes(1);
-            // Should register 1 effect
-            expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(1);
+            // Should register 2 effects
+            expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(2);
 
             // Should not display error modal when successful
             expect(mockFrontendCommunicator.send).not.toHaveBeenCalledWith('error', expect.anything());
@@ -147,6 +155,8 @@ describe('PlatformLibrary', () => {
             // Should log the registration errors
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform variable'));
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform-aware user display name variable'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform currency by user ID variable'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform currency variable'));
 
             // Should log error about failures
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Feature registration completed with'));

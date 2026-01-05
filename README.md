@@ -6,7 +6,9 @@ This is a [Firebot](https://firebot.app) plugin that provides centralized platfo
 
 - Platform Variable (`$platform`) - Detects the platform from event context
 - Platform-Aware User Display Name Variable (`$platformAwareUserDisplayName`) - Resolve usernames across platforms
+- Platform Currency Variables (`$platformCurrency`, `$platformCurrencyByUserId`) - Read Kick and YouTube currency balances
 - [Platform-Aware Chat Effect](/doc/effects/chat-platform.md) - Send messages to specific platforms or all platforms
+- Update Platform User Currency Effect - Update currency for Twitch, Kick, and YouTube users
 - Platform Condition - Conditional logic based on platform
 - Platform Filter - Filter events by platform
 - Platform Restriction - Restrict effects to specific platforms
