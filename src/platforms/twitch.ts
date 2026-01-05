@@ -1,7 +1,5 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import {
-    GetUserDisplayNameRequest,
-    GetUserDisplayNameResponse,
     SendChatMessageRequest,
     SendChatMessageResponse
 } from '@thestaticmage/mage-platform-lib-client';
@@ -40,31 +38,6 @@ export class TwitchOperationHandler {
                 success: false,
                 error: error instanceof Error ? error.message : String(error)
             };
-        }
-    }
-
-    /**
-     * Gets a Twitch user's display name
-     */
-    async getUserDisplayName(
-        request: GetUserDisplayNameRequest
-    ): Promise<GetUserDisplayNameResponse> {
-        try {
-            const { userDb } = this.modules;
-
-            // Try to get from user database
-            const viewer = await userDb.getTwitchUserByUsername(request.username);
-            if (viewer && viewer.displayName) {
-                this.logger.debug(`Found Twitch display name for ${request.username}: ${viewer.displayName}`);
-                return { displayName: viewer.displayName };
-            }
-
-            // Fallback to username
-            this.logger.debug(`No display name found for ${request.username}, using username`);
-            return { displayName: request.username };
-        } catch (error) {
-            this.logger.error(`Failed to get Twitch user display name: ${error}`);
-            return { displayName: null };
         }
     }
 }

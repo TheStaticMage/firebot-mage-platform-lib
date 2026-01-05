@@ -6,8 +6,7 @@
  * Operation names for platform operations
  */
 export const OPERATIONS = {
-    SEND_CHAT_MESSAGE: 'send-chat-message',
-    GET_USER_DISPLAY_NAME: 'get-user-display-name'
+    SEND_CHAT_MESSAGE: 'send-chat-message'
 } as const;
 
 /**
@@ -45,14 +44,12 @@ export const DEFAULT_WEB_SERVER_PORT = 7472;
  * Operation-specific timeouts (in milliseconds)
  */
 export const OPERATION_TIMEOUTS: Record<string, number> = {
-    [OPERATIONS.SEND_CHAT_MESSAGE]: 5000,
-    [OPERATIONS.GET_USER_DISPLAY_NAME]: 3000
+    [OPERATIONS.SEND_CHAT_MESSAGE]: 5000
 } as const;
 
 /**
  * Operation-specific retry counts
  */
 export const OPERATION_RETRIES: Record<string, number> = {
-    [OPERATIONS.SEND_CHAT_MESSAGE]: 1,
-    [OPERATIONS.GET_USER_DISPLAY_NAME]: 1
+    [OPERATIONS.SEND_CHAT_MESSAGE]: 1
 } as const;

@@ -35,8 +35,6 @@ export {
 export type {
     SendChatMessageRequest,
     SendChatMessageResponse,
-    GetUserDisplayNameRequest,
-    GetUserDisplayNameResponse,
     OperationName
 } from './operations';
 

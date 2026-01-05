@@ -1,6 +1,5 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import {
-    GetUserDisplayNameRequest,
     OPERATIONS,
     OPERATION_RETRIES,
     OPERATION_TIMEOUTS,
@@ -79,9 +78,6 @@ export class PlatformDispatcher {
             case OPERATIONS.SEND_CHAT_MESSAGE:
                 return this.twitchHandler.sendChatMessage(request as SendChatMessageRequest) as unknown as TResponse;
 
-            case OPERATIONS.GET_USER_DISPLAY_NAME:
-                return this.twitchHandler.getUserDisplayName(request as GetUserDisplayNameRequest) as unknown as TResponse;
-
             default:
                 throw new Error(`Unsupported Twitch operation: ${operation}`);
         }
@@ -117,26 +113,14 @@ export class PlatformDispatcher {
         this.logger.debug(`Dispatching to integration via HTTP: ${operation} to ${endpoint}`);
 
         try {
-            let response;
             const timeout = OPERATION_TIMEOUTS[operation];
             const retries = OPERATION_RETRIES[operation];
 
-            // Handle different HTTP methods for different operations
-            if (operation === OPERATIONS.GET_USER_DISPLAY_NAME) {
-                // GET request with query parameters
-                const params = { username: (request as any).username };
-                response = await this.httpClient.get<TResponse>(endpoint, {
-                    timeout,
-                    retries,
-                    params
-                });
-            } else {
-                // POST request with body (send-chat-message)
-                response = await this.httpClient.post<TResponse>(endpoint, request, {
-                    timeout,
-                    retries
-                });
-            }
+            // All operations use POST
+            const response = await this.httpClient.post<TResponse>(endpoint, request, {
+                timeout,
+                retries
+            });
 
             return response.data;
         } catch (error) {

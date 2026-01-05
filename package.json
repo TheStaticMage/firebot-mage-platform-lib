@@ -1,7 +1,7 @@
 {
     "name": "firebot-mage-platform-lib",
     "scriptOutputName": "firebot-mage-platform-lib",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Multi-platform support library for Firebot integrations",
     "main": "",
     "scripts": {

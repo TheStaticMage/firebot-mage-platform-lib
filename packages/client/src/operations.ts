@@ -44,23 +44,7 @@ export interface SendChatMessageResponse {
     error?: string;
 }
 
-export interface GetUserDisplayNameRequest {
-    /**
-     * Username to look up
-     */
-    username: string;
-}
-
-export interface GetUserDisplayNameResponse {
-    /**
-     * The user's display name, or null if not found
-     */
-    displayName: string | null;
-}
-
 /**
  * Operation type names (for type safety)
  */
-export type OperationName =
-    | "send-chat-message"
-    | "get-user-display-name";
+export type OperationName = "send-chat-message";

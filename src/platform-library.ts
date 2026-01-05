@@ -279,7 +279,7 @@ export class PlatformLibrary {
         // Register platform-aware user display name variable
         try {
             const platformAwareUserDisplayNameVariable = createPlatformAwareUserDisplayNameVariable(
-                this.platformDispatcher,
+                this.userDatabase,
                 this.logger
             );
             replaceVariableManager.registerReplaceVariable(platformAwareUserDisplayNameVariable);
