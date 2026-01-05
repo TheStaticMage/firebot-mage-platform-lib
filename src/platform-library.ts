@@ -5,6 +5,8 @@ import {
     initializeErrorModal,
     PLATFORM_LIB_VERSION
 } from '@thestaticmage/mage-platform-lib-client';
+import fs from 'fs';
+import path from 'path';
 import { platformCondition } from './conditions/platform';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { chatPlatformEffect } from './effects/chat-platform';
@@ -27,6 +29,7 @@ import { createPlatformCurrencyByUserIdVariable } from './variables/platform-cur
 export class PlatformLibrary {
     private logger: LogWrapper;
     private modules: ScriptModules;
+    private scriptDataDir: string;
     integrationDetector: IntegrationDetector;
     platformDispatcher: PlatformDispatcher;
     public userDatabase: PlatformUserDatabase;
@@ -36,6 +39,7 @@ export class PlatformLibrary {
     constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string) {
         this.logger = logger;
         this.modules = modules;
+        this.scriptDataDir = scriptDataDir;
 
         this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}`);
 
@@ -91,12 +95,20 @@ export class PlatformLibrary {
 
             // Initialize platform user database
             this.logger.debug('Initializing platform user database...');
+            const platformDbPath = path.join(this.scriptDataDir, 'platform-users.db');
+            const platformDbExists = fs.existsSync(platformDbPath);
+            let databaseReady = false;
             try {
                 await this.userDatabase.initialize();
+                databaseReady = true;
             } catch (error) {
                 const errorMsg = `Failed to initialize platform user database: ${error}`;
                 this.logger.error(errorMsg);
                 this.criticalErrors.push(errorMsg);
+            }
+
+            if (databaseReady) {
+                await this.migrateKickUsersIfNeeded(platformDbExists);
             }
 
             // Register features
@@ -114,6 +126,36 @@ export class PlatformLibrary {
             this.logger.error(`Failed to initialize Platform Library: ${error}`);
             await this.sendCriticalErrorNotification(`Failed to initialize Platform Library: ${error}`);
             throw error;
+        }
+    }
+
+    private async migrateKickUsersIfNeeded(platformDbExists: boolean): Promise<void> {
+        if (platformDbExists) {
+            this.logger.debug('Platform user database already exists. Skipping Kick migration.');
+            return;
+        }
+
+        const kickDataDir = path.resolve(this.scriptDataDir, '..', 'kick-integration');
+        if (!fs.existsSync(kickDataDir)) {
+            this.logger.debug('Kick integration data directory not found. Skipping Kick migration.');
+            return;
+        }
+
+        const kickDbPath = path.join(kickDataDir, 'kick-users.db');
+        if (!fs.existsSync(kickDbPath)) {
+            this.logger.debug('Kick user database not found. Skipping Kick migration.');
+            return;
+        }
+
+        try {
+            this.logger.info('Kick user database found. Starting migration.');
+            const result = await this.userDatabase.migrateFromKickDb(kickDbPath);
+            this.logger.info(`Kick migration complete. Migrated: ${result.migrated}, skipped: ${result.skipped}`);
+            if (result.conflicts.length > 0) {
+                this.logger.warn(`Kick migration conflicts: ${result.conflicts.length}`);
+            }
+        } catch (error) {
+            this.logger.error(`Kick migration failed: ${error}`);
         }
     }
 

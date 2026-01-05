@@ -27,6 +27,7 @@ const createMockDb = () => ({
     setAutocompactionInterval: jest.fn(),
     insertAsync: jest.fn(),
     findOneAsync: jest.fn(),
+    findAsync: jest.fn(),
     updateAsync: jest.fn()
 });
 
@@ -653,6 +654,103 @@ describe('PlatformUserDatabase', () => {
             const newValue = await db.incrementMinutesInChannel('kick', 'k123', 30);
 
             expect(newValue).toBe(30);
+        });
+    });
+
+    describe('Kick migration', () => {
+        it('migrates Kick users into platform database', async () => {
+            const platformDb = createMockDb();
+            platformDb.findOneAsync.mockResolvedValue(null);
+            platformDb.insertAsync.mockImplementation(async user => user);
+
+            const kickDb = createMockDb();
+            kickDb.loadDatabaseAsync.mockResolvedValue(undefined);
+            kickDb.findAsync.mockResolvedValue([
+                {
+                    _id: '123',
+                    username: 'TestUser',
+                    displayName: 'Test User',
+                    profilePicUrl: 'pic.png',
+                    lastSeen: 1000,
+                    currency: { points: 5 },
+                    metadata: { foo: 'bar' },
+                    chatMessages: 2,
+                    minutesInChannel: 10
+                }
+            ]);
+
+            mockDatastore.mockImplementation(() => kickDb as any);
+
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = platformDb;
+
+            const result = await db.migrateFromKickDb('kick-db');
+
+            expect(result).toEqual({
+                migrated: 1,
+                skipped: 0,
+                conflicts: []
+            });
+            expect(platformDb.insertAsync).toHaveBeenCalledWith({
+                _id: 'k123',
+                username: 'testuser',
+                displayName: 'Test User',
+                profilePicUrl: 'pic.png',
+                lastSeen: 1000,
+                currency: { points: 5 },
+                metadata: { foo: 'bar' },
+                chatMessages: 2,
+                minutesInChannel: 10
+            });
+        });
+
+        it('skips Kick users with ID or username conflicts', async () => {
+            const platformDb = createMockDb();
+            platformDb.findOneAsync.mockImplementation(async (query) => {
+                if ((query)._id === 'k1') {
+                    return { _id: 'k1', username: 'existing' };
+                }
+                if ((query).username === 'user2' && (query)._id?.$regex) {
+                    return { _id: 'k9', username: 'user2' };
+                }
+                return null;
+            });
+            platformDb.insertAsync.mockImplementation(async user => user);
+
+            const kickDb = createMockDb();
+            kickDb.loadDatabaseAsync.mockResolvedValue(undefined);
+            kickDb.findAsync.mockResolvedValue([
+                { _id: '1', username: 'User1' },
+                { _id: '2', username: 'User2' },
+                { _id: '3', username: 'User3' }
+            ]);
+
+            mockDatastore.mockImplementation(() => kickDb as any);
+
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = platformDb;
+
+            const result = await db.migrateFromKickDb('kick-db');
+
+            expect(result.migrated).toBe(1);
+            expect(result.skipped).toBe(2);
+            expect(result.conflicts).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'id',
+                    kickUserId: '1',
+                    kickUsername: 'User1',
+                    existingUserId: 'k1'
+                }),
+                expect.objectContaining({
+                    type: 'username',
+                    kickUserId: '2',
+                    kickUsername: 'User2',
+                    existingUserId: 'k9'
+                })
+            ]));
+            expect(platformDb.insertAsync).toHaveBeenCalledWith(
+                expect.objectContaining({ _id: 'k3', username: 'user3' })
+            );
         });
     });
 });

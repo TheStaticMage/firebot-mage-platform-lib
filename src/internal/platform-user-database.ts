@@ -7,6 +7,32 @@ import { firebot } from '../main';
 import type { PlatformUser } from '../types/platform-user';
 import { LogWrapper } from '../main';
 
+export interface MigrationConflict {
+    type: 'id' | 'username';
+    kickUserId: string;
+    kickUsername: string;
+    existingUserId: string;
+    reason: string;
+}
+
+export interface MigrationResult {
+    migrated: number;
+    skipped: number;
+    conflicts: MigrationConflict[];
+}
+
+type KickUserRecord = {
+    _id?: string;
+    username?: string;
+    displayName?: string;
+    profilePicUrl?: string;
+    lastSeen?: number;
+    currency?: Record<string, number>;
+    metadata?: Record<string, unknown>;
+    chatMessages?: number;
+    minutesInChannel?: number;
+};
+
 export class PlatformUserDatabase {
     private db?: Datastore<PlatformUser>;
     private logger: LogWrapper;
@@ -619,6 +645,92 @@ export class PlatformUserDatabase {
             this.logger.debug(`Failed to increment minutes in channel: ${error}`);
             throw error;
         }
+    }
+
+    async migrateFromKickDb(kickDbPath: string): Promise<MigrationResult> {
+        const db = this.ensureDb();
+        const result: MigrationResult = {
+            migrated: 0,
+            skipped: 0,
+            conflicts: []
+        };
+
+        const kickDb = new Datastore<KickUserRecord>({
+            filename: kickDbPath,
+            autoload: false
+        });
+
+        await kickDb.loadDatabaseAsync();
+        const kickUsers = await kickDb.findAsync({});
+
+        for (const kickUser of kickUsers) {
+            try {
+                const rawId = typeof kickUser._id === 'string' ? kickUser._id : '';
+                const rawUsername = typeof kickUser.username === 'string' ? kickUser.username : '';
+
+                if (!rawId || !rawUsername) {
+                    this.logger.warn(`Skipping Kick user with missing id or username: ${JSON.stringify(kickUser)}`);
+                    result.skipped += 1;
+                    continue;
+                }
+
+                const prefixedId = this.ensurePlatformPrefixForMigration('kick', rawId);
+                const normalizedUsername = this.normalizeUsername(rawUsername);
+
+                const existingById = await db.findOneAsync({ _id: prefixedId });
+                if (existingById) {
+                    result.conflicts.push({
+                        type: 'id',
+                        kickUserId: rawId,
+                        kickUsername: rawUsername,
+                        existingUserId: existingById._id,
+                        reason: `User id already exists: ${prefixedId}`
+                    });
+                    this.logger.warn(`Kick migration conflict (id): ${prefixedId}`);
+                    result.skipped += 1;
+                    continue;
+                }
+
+                const existingByUsername = await db.findOneAsync({
+                    username: normalizedUsername,
+                    _id: { $regex: /^k/ }
+                });
+                if (existingByUsername) {
+                    result.conflicts.push({
+                        type: 'username',
+                        kickUserId: rawId,
+                        kickUsername: rawUsername,
+                        existingUserId: existingByUsername._id,
+                        reason: `Username already exists for Kick: ${normalizedUsername}`
+                    });
+                    this.logger.warn(`Kick migration conflict (username): ${normalizedUsername}`);
+                    result.skipped += 1;
+                    continue;
+                }
+
+                const migratedUser: PlatformUser = {
+                    _id: prefixedId,
+                    username: normalizedUsername,
+                    displayName: typeof kickUser.displayName === 'string' && kickUser.displayName.trim()
+                        ? kickUser.displayName
+                        : normalizedUsername,
+                    profilePicUrl: typeof kickUser.profilePicUrl === 'string' ? kickUser.profilePicUrl : '',
+                    lastSeen: typeof kickUser.lastSeen === 'number' ? kickUser.lastSeen : 0,
+                    currency: typeof kickUser.currency === 'object' && kickUser.currency ? kickUser.currency : {},
+                    metadata: typeof kickUser.metadata === 'object' && kickUser.metadata ? kickUser.metadata : {},
+                    chatMessages: typeof kickUser.chatMessages === 'number' ? kickUser.chatMessages : 0,
+                    minutesInChannel: typeof kickUser.minutesInChannel === 'number' ? kickUser.minutesInChannel : 0
+                };
+
+                await db.insertAsync(migratedUser);
+                result.migrated += 1;
+            } catch (error) {
+                this.logger.warn(`Failed to migrate Kick user: ${error}`);
+                result.skipped += 1;
+            }
+        }
+
+        return result;
     }
 
     private ensureDb(): Datastore<PlatformUser> {
