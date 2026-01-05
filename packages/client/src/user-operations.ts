@@ -21,6 +21,8 @@ import type {
     SetMinutesInChannelResponse,
     SetUserMetadataRequest,
     SetUserMetadataResponse,
+    SetUserRolesRequest,
+    SetUserRolesResponse,
     UpdateLastSeenRequest,
     UpdateLastSeenResponse
 } from './operations';
@@ -118,6 +120,17 @@ export async function incrementUserMetadata(
 ): Promise<IncrementUserMetadataResponse> {
     const url = `${buildBaseUrl(port)}/users/metadata/increment`;
     return requestJson<IncrementUserMetadataResponse>(url, {
+        method: 'POST',
+        body: JSON.stringify(request)
+    });
+}
+
+export async function setUserRoles(
+    request: SetUserRolesRequest,
+    port: number = DEFAULT_WEB_SERVER_PORT
+): Promise<SetUserRolesResponse> {
+    const url = `${buildBaseUrl(port)}/users/roles/set`;
+    return requestJson<SetUserRolesResponse>(url, {
         method: 'POST',
         body: JSON.stringify(request)
     });

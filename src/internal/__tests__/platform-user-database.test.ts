@@ -122,6 +122,7 @@ describe('PlatformUserDatabase', () => {
         expect(created.lastSeen).toBe(Date.now());
         expect(created.chatMessages).toBe(0);
         expect(created.minutesInChannel).toBe(0);
+        expect(created.twitchRoles).toEqual([]);
         expect(mockDb.insertAsync).toHaveBeenCalledTimes(1);
 
         jest.useRealTimers();
@@ -129,7 +130,16 @@ describe('PlatformUserDatabase', () => {
 
     it('returns existing user when found', async () => {
         const mockDb = createMockDb();
-        const existing = { _id: 'k123', username: 'user', displayName: 'user', profilePicUrl: '', lastSeen: 0, currency: {}, metadata: {} };
+        const existing = {
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: {},
+            twitchRoles: []
+        };
         mockDb.findOneAsync.mockResolvedValue(existing);
         const db = new PlatformUserDatabase('data', logger);
         (db as any).db = mockDb;
@@ -383,6 +393,63 @@ describe('PlatformUserDatabase', () => {
         (db as any).db = mockDb;
 
         await expect(db.incrementUserMetadata('twitch', 'k123', 'test', 1)).rejects.toThrow();
+    });
+
+    describe('user roles operations', () => {
+        it('gets user roles when present', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 0,
+                minutesInChannel: 0,
+                twitchRoles: ['mod']
+            });
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const roles = await db.getUserRoles('kick', 'k123');
+            expect(roles).toEqual(['mod']);
+        });
+
+        it('returns empty roles when missing', async () => {
+            const mockDb = createMockDb();
+            mockDb.findOneAsync.mockResolvedValue({
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                chatMessages: 0,
+                minutesInChannel: 0
+            });
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            const roles = await db.getUserRoles('kick', 'k123');
+            expect(roles).toEqual([]);
+        });
+
+        it('sets user roles', async () => {
+            const mockDb = createMockDb();
+            mockDb.updateAsync.mockResolvedValue(1);
+            const db = new PlatformUserDatabase('data', logger);
+            (db as any).db = mockDb;
+
+            await db.setUserRoles('kick', 'k123', ['mod', 'vip']);
+
+            expect(mockDb.updateAsync).toHaveBeenCalledWith(
+                { _id: 'k123' },
+                { $set: { twitchRoles: ['mod', 'vip'] } }
+            );
+        });
     });
 
     describe('chatMessages operations', () => {
@@ -700,7 +767,8 @@ describe('PlatformUserDatabase', () => {
                 currency: { points: 5 },
                 metadata: { foo: 'bar' },
                 chatMessages: 2,
-                minutesInChannel: 10
+                minutesInChannel: 10,
+                twitchRoles: []
             });
         });
 

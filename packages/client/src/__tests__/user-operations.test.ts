@@ -9,6 +9,7 @@ import {
     setChatMessages,
     setMinutesInChannel,
     setUserMetadata,
+    setUserRoles,
     updateLastSeen
 } from '../user-operations';
 
@@ -102,6 +103,7 @@ describe('user-operations', () => {
 
         await setUserMetadata({ platform: 'kick', userId: 'k123', key: 'test', value: 1 });
         await incrementUserMetadata({ platform: 'kick', userId: 'k123', key: 'test', amount: 2 });
+        await setUserRoles({ platform: 'kick', userId: 'k123', roles: ['mod'] });
         await updateLastSeen({ platform: 'kick', userId: 'k123' });
         await setChatMessages({ platform: 'kick', userId: 'k123', count: 5 });
         await incrementChatMessages({ platform: 'kick', userId: 'k123', amount: 3 });
@@ -114,6 +116,10 @@ describe('user-operations', () => {
         );
         expect(fetchMock).toHaveBeenCalledWith(
             'http://localhost:7472/integrations/mage-platform-lib/users/metadata/increment',
+            expect.objectContaining({ method: 'POST' })
+        );
+        expect(fetchMock).toHaveBeenCalledWith(
+            'http://localhost:7472/integrations/mage-platform-lib/users/roles/set',
             expect.objectContaining({ method: 'POST' })
         );
         expect(fetchMock).toHaveBeenCalledWith(

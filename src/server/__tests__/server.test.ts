@@ -11,6 +11,7 @@ jest.mock('../../main', () => ({
             getOrCreateUser: jest.fn(),
             setUserMetadata: jest.fn(),
             incrementUserMetadata: jest.fn(),
+            setUserRoles: jest.fn(),
             updateLastSeen: jest.fn(),
             setChatMessages: jest.fn(),
             incrementChatMessages: jest.fn(),
@@ -53,13 +54,14 @@ describe('REST Endpoints', () => {
             const modules = { httpServer: mockHttpServer } as any;
             registerRoutes(modules, logger);
 
-            expect(mockHttpServer.registerCustomRoute).toHaveBeenCalledTimes(11);
+            expect(mockHttpServer.registerCustomRoute).toHaveBeenCalledTimes(12);
             expect(routes.map(r => r.route)).toContain('ping');
             expect(routes.map(r => r.route)).toContain('users/by-id');
             expect(routes.map(r => r.route)).toContain('users/by-username');
             expect(routes.map(r => r.route)).toContain('users/get-or-create');
             expect(routes.map(r => r.route)).toContain('users/metadata/set');
             expect(routes.map(r => r.route)).toContain('users/metadata/increment');
+            expect(routes.map(r => r.route)).toContain('users/roles/set');
             expect(routes.map(r => r.route)).toContain('users/update-last-seen');
             expect(routes.map(r => r.route)).toContain('users/chat-messages/set');
             expect(routes.map(r => r.route)).toContain('users/chat-messages/increment');
@@ -72,7 +74,7 @@ describe('REST Endpoints', () => {
             registerRoutes(modules, logger);
             unregisterRoutes(modules, logger);
 
-            expect(mockHttpServer.unregisterCustomRoute).toHaveBeenCalledTimes(11);
+            expect(mockHttpServer.unregisterCustomRoute).toHaveBeenCalledTimes(12);
         });
     });
 
@@ -83,7 +85,16 @@ describe('REST Endpoints', () => {
 
             const route = routes.find(r => r.route === 'users/by-id');
             const handler = route?.handler;
-            const mockUser = { _id: 'k123', username: 'user', displayName: 'user', profilePicUrl: '', lastSeen: 0, currency: {}, metadata: {} };
+            const mockUser = {
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                twitchRoles: []
+            };
             (platformLib.userDatabase.getUser as jest.Mock).mockResolvedValue(mockUser);
 
             const req = { query: { platform: 'kick', userId: 'k123' } };
@@ -144,7 +155,16 @@ describe('REST Endpoints', () => {
 
             const route = routes.find(r => r.route === 'users/by-username');
             const handler = route?.handler;
-            const mockUser = { _id: 'k123', username: 'user', displayName: 'user', profilePicUrl: '', lastSeen: 0, currency: {}, metadata: {} };
+            const mockUser = {
+                _id: 'k123',
+                username: 'user',
+                displayName: 'user',
+                profilePicUrl: '',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                twitchRoles: []
+            };
             (platformLib.userDatabase.getUserByUsername as jest.Mock).mockResolvedValue(mockUser);
 
             const req = { query: { username: 'user', platform: 'kick' } };
@@ -183,7 +203,16 @@ describe('REST Endpoints', () => {
 
             const route = routes.find(r => r.route === 'users/get-or-create');
             const handler = route?.handler;
-            const mockUser = { _id: 'k123', username: 'user', displayName: 'User', profilePicUrl: 'pic.png', lastSeen: 0, currency: {}, metadata: {} };
+            const mockUser = {
+                _id: 'k123',
+                username: 'user',
+                displayName: 'User',
+                profilePicUrl: 'pic.png',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                twitchRoles: []
+            };
             const getUserMock = platformLib.userDatabase.getUser as jest.Mock;
             const getOrCreateUserMock = platformLib.userDatabase.getOrCreateUser as jest.Mock;
             getUserMock.mockResolvedValue(null);
@@ -221,7 +250,16 @@ describe('REST Endpoints', () => {
 
             const route = routes.find(r => r.route === 'users/get-or-create');
             const handler = route?.handler;
-            const mockUser = { _id: 'k123', username: 'user', displayName: 'User', profilePicUrl: 'pic.png', lastSeen: 0, currency: {}, metadata: {} };
+            const mockUser = {
+                _id: 'k123',
+                username: 'user',
+                displayName: 'User',
+                profilePicUrl: 'pic.png',
+                lastSeen: 0,
+                currency: {},
+                metadata: {},
+                twitchRoles: []
+            };
             const getUserMock = platformLib.userDatabase.getUser as jest.Mock;
             const getOrCreateUserMock = platformLib.userDatabase.getOrCreateUser as jest.Mock;
             getUserMock.mockResolvedValue(mockUser);
@@ -351,6 +389,50 @@ describe('REST Endpoints', () => {
             const route = routes.find(r => r.route === 'users/metadata/increment');
             const handler = route?.handler;
             const req = { body: { platform: 'kick', userId: 'k123', key: 'test' } };
+            const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+
+            if (handler) {
+                await handler(req, res);
+            }
+
+            expect(res.status).toHaveBeenCalledWith(400);
+        });
+    });
+
+    describe('POST /users/roles/set', () => {
+        it('sets roles successfully', async () => {
+            const modules = { httpServer: mockHttpServer } as any;
+            registerRoutes(modules, logger);
+
+            const route = routes.find(r => r.route === 'users/roles/set');
+            const handler = route?.handler;
+            const setUserRolesMock = platformLib.userDatabase.setUserRoles as jest.Mock;
+            setUserRolesMock.mockResolvedValue(undefined);
+
+            const req = {
+                body: {
+                    platform: 'kick',
+                    userId: 'k123',
+                    roles: ['mod', 'vip']
+                }
+            };
+            const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+
+            if (handler) {
+                await handler(req, res);
+            }
+
+            expect(res.json).toHaveBeenCalledWith({ success: true });
+            expect(setUserRolesMock).toHaveBeenCalledWith('kick', 'k123', ['mod', 'vip']);
+        });
+
+        it('returns error when roles are invalid', async () => {
+            const modules = { httpServer: mockHttpServer } as any;
+            registerRoutes(modules, logger);
+
+            const route = routes.find(r => r.route === 'users/roles/set');
+            const handler = route?.handler;
+            const req = { body: { platform: 'kick', userId: 'k123', roles: 'mod' } };
             const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
 
             if (handler) {

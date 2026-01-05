@@ -31,6 +31,7 @@ type KickUserRecord = {
     metadata?: Record<string, unknown>;
     chatMessages?: number;
     minutesInChannel?: number;
+    twitchRoles?: string[];
 };
 
 export class PlatformUserDatabase {
@@ -247,7 +248,7 @@ export class PlatformUserDatabase {
             const db = this.ensureDb();
             const normalizedUserId = this.validateUserId(userId);
             const user = await db.findOneAsync({ _id: normalizedUserId });
-            return user || null;
+            return user ? this.ensureUserRoles(user) : null;
         } catch (error) {
             this.logger.debug(`Failed to get user: ${error}`);
             return null;
@@ -283,7 +284,7 @@ export class PlatformUserDatabase {
                 username: normalizedUsername,
                 _id: { $regex: new RegExp(`^${platformPrefix}`) }
             });
-            return user || null;
+            return user ? this.ensureUserRoles(user) : null;
         } catch (error) {
             this.logger.debug(`Failed to get user by username: ${error}`);
             return null;
@@ -313,7 +314,7 @@ export class PlatformUserDatabase {
 
         const existingUser = await db.findOneAsync({ _id: normalizedUserId });
         if (existingUser) {
-            return existingUser;
+            return this.ensureUserRoles(existingUser);
         }
 
         const newUser: PlatformUser = {
@@ -325,7 +326,8 @@ export class PlatformUserDatabase {
             currency: {},
             metadata: {},
             chatMessages: 0,
-            minutesInChannel: 0
+            minutesInChannel: 0,
+            twitchRoles: []
         };
 
         return await db.insertAsync(newUser);
@@ -567,6 +569,46 @@ export class PlatformUserDatabase {
     }
 
     /**
+     * Get a user's viewer roles.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @returns Roles array, defaults to empty.
+     */
+    async getUserRoles(platform: string, userId: string): Promise<string[]> {
+        try {
+            this.validatePlatform(platform);
+            const user = await this.getUser(platform, userId);
+            return Array.isArray(user?.twitchRoles) ? user.twitchRoles : [];
+        } catch (error) {
+            this.logger.debug(`Failed to get user roles: ${error}`);
+            return [];
+        }
+    }
+
+    /**
+     * Set a user's viewer roles.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param roles Roles to store.
+     */
+    async setUserRoles(platform: string, userId: string, roles: string[]): Promise<void> {
+        try {
+            this.validatePlatform(platform);
+            const db = this.ensureDb();
+            const normalizedUserId = this.validateUserId(userId);
+            const normalizedRoles = Array.isArray(roles)
+                ? roles.filter(role => typeof role === 'string')
+                : [];
+            await db.updateAsync(
+                { _id: normalizedUserId },
+                { $set: { twitchRoles: normalizedRoles } }
+            );
+        } catch (error) {
+            this.logger.debug(`Failed to set user roles: ${error}`);
+        }
+    }
+
+    /**
      * Increment a user's chat message count.
      * @param platform Platform identifier.
      * @param userId Platform-prefixed user ID.
@@ -719,7 +761,8 @@ export class PlatformUserDatabase {
                     currency: typeof kickUser.currency === 'object' && kickUser.currency ? kickUser.currency : {},
                     metadata: typeof kickUser.metadata === 'object' && kickUser.metadata ? kickUser.metadata : {},
                     chatMessages: typeof kickUser.chatMessages === 'number' ? kickUser.chatMessages : 0,
-                    minutesInChannel: typeof kickUser.minutesInChannel === 'number' ? kickUser.minutesInChannel : 0
+                    minutesInChannel: typeof kickUser.minutesInChannel === 'number' ? kickUser.minutesInChannel : 0,
+                    twitchRoles: Array.isArray(kickUser.twitchRoles) ? kickUser.twitchRoles : []
                 };
 
                 await db.insertAsync(migratedUser);
@@ -731,6 +774,13 @@ export class PlatformUserDatabase {
         }
 
         return result;
+    }
+
+    private ensureUserRoles(user: PlatformUser): PlatformUser {
+        if (!Array.isArray(user.twitchRoles)) {
+            user.twitchRoles = [];
+        }
+        return user;
     }
 
     private ensureDb(): Datastore<PlatformUser> {

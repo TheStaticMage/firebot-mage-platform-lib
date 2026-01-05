@@ -92,6 +92,11 @@ export interface PlatformUser {
      * Minutes spent in channel
      */
     minutesInChannel: number;
+
+    /**
+     * Viewer roles from the platform
+     */
+    twitchRoles: string[];
 }
 
 /**
@@ -157,6 +162,17 @@ export interface IncrementUserMetadataRequest {
 export interface IncrementUserMetadataResponse {
     success: boolean;
     newValue?: number;
+    error?: string;
+}
+
+export interface SetUserRolesRequest {
+    platform: string;
+    userId: string;
+    roles: string[];
+}
+
+export interface SetUserRolesResponse {
+    success: boolean;
     error?: string;
 }
 

@@ -203,6 +203,40 @@ export function registerRoutes(modules: ScriptModules, logger: LogWrapper) {
         }
     );
 
+    // POST /users/roles/set - Set viewer roles
+    httpServer.registerCustomRoute(
+        IntegrationConstants.INTEGRATION_URI,
+        "users/roles/set",
+        "POST",
+        async (req, res): Promise<void> => {
+            try {
+                const { platform, userId, roles } = req.body;
+
+                if (!platform || !userId || !Array.isArray(roles)) {
+                    res.status(400).json({
+                        success: false,
+                        error: 'platform, userId, and roles are required'
+                    });
+                    return;
+                }
+
+                await platformLib.userDatabase.setUserRoles(
+                    platform as string,
+                    userId as string,
+                    roles as string[]
+                );
+
+                res.json({ success: true });
+            } catch (error) {
+                logger.error(`users/roles/set operation failed: ${error}`);
+                res.status(500).json({
+                    success: false,
+                    error: String(error)
+                });
+            }
+        }
+    );
+
     // POST /users/update-last-seen - Update lastSeen timestamp
     httpServer.registerCustomRoute(
         IntegrationConstants.INTEGRATION_URI,
@@ -385,6 +419,7 @@ export function unregisterRoutes(modules: ScriptModules, logger: LogWrapper) {
     httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/get-or-create", "POST");
     httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/metadata/set", "POST");
     httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/metadata/increment", "POST");
+    httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/roles/set", "POST");
     httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/update-last-seen", "POST");
     httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/chat-messages/set", "POST");
     httpServer.unregisterCustomRoute(IntegrationConstants.INTEGRATION_URI, "users/chat-messages/increment", "POST");

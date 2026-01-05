@@ -189,7 +189,8 @@ describe('platformAwareUserDisplayName variable', () => {
                 currency: {},
                 metadata: {},
                 chatMessages: 0,
-                minutesInChannel: 0
+                minutesInChannel: 0,
+                twitchRoles: []
             });
 
             const result = await variable.evaluator(trigger);
@@ -274,7 +275,8 @@ describe('platformAwareUserDisplayName variable', () => {
                 currency: {},
                 metadata: {},
                 chatMessages: 0,
-                minutesInChannel: 0
+                minutesInChannel: 0,
+                twitchRoles: []
             });
 
             const result = await variable.evaluator(trigger);

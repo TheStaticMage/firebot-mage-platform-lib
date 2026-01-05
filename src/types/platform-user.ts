@@ -2,5 +2,14 @@ import type { FirebotViewer } from '@crowbartools/firebot-custom-scripts-types/t
 
 export type PlatformUser = Pick<
     FirebotViewer,
-    '_id' | 'username' | 'displayName' | 'profilePicUrl' | 'lastSeen' | 'currency' | 'metadata' | 'chatMessages' | 'minutesInChannel'
+    '_id'
+    | 'username'
+    | 'displayName'
+    | 'profilePicUrl'
+    | 'lastSeen'
+    | 'currency'
+    | 'metadata'
+    | 'chatMessages'
+    | 'minutesInChannel'
+    | 'twitchRoles'
 >;
