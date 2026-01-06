@@ -14,7 +14,7 @@
         "copy": "node ./scripts/copy-build.js",
         "prepare": "",
         "test": "jest",
-        "lint": "eslint src/ --max-warnings 0"
+        "lint": "eslint src/ --max-warnings 0 && eslint packages/client/src/ --max-warnings 0"
     },
     "author": "thestaticmage",
     "license": "GPL-3.0",
