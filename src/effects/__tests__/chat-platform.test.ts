@@ -593,6 +593,57 @@ describe('chat-platform effect', () => {
             expect(mockDispatcher.dispatchOperation).toHaveBeenCalledTimes(3);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to send message to kick'));
         });
+
+        it('should return after timeout when integration response is slow', async () => {
+            jest.useFakeTimers();
+
+            try {
+                mockIntegrationDetector.isIntegrationDetected.mockImplementation(platform => platform === 'kick');
+                mockDispatcher.dispatchOperation.mockReturnValue(new Promise(() => undefined) as any);
+
+                const effect = chatPlatformEffect;
+
+                const effectModel: ChatPlatformEffectModel = {
+                    twitchMessage: '',
+                    twitchSend: 'never',
+                    twitchReply: false,
+                    twitchChatter: 'Streamer',
+                    twitchEnabled: false,
+                    kickMessage: 'Hello Kick!',
+                    kickSend: 'onTrigger',
+                    kickReply: false,
+                    kickChatter: 'Streamer',
+                    kickEnabled: true,
+                    youtubeMessage: '',
+                    youtubeSend: 'never',
+                    youtubeReply: false,
+                    youtubeChatter: 'Streamer',
+                    youtubeEnabled: false,
+                    unknownPlatformTarget: 'none'
+                };
+
+                const trigger: Trigger = {
+                    type: 'event',
+                    metadata: {
+                        username: 'testuser@kick',
+                        platform: 'kick'
+                    }
+                };
+
+                const resultPromise = effect.onTriggerEvent({
+                    effect: effectModel,
+                    trigger,
+                    sendDataToOverlay: jest.fn(),
+                    abortSignal: new AbortController().signal
+                });
+
+                await jest.advanceTimersByTimeAsync(1000);
+
+                await expect(resultPromise).resolves.toBe(true);
+            } finally {
+                jest.useRealTimers();
+            }
+        });
     });
 
     describe('determinePlatformTargets', () => {

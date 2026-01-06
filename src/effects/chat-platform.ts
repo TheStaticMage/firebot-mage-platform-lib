@@ -37,6 +37,8 @@ export interface ChatPlatformEffectModel {
     offlineSendMode?: 'send-anyway' | 'chat-feed-only' | 'do-not-send';
 }
 
+const INTEGRATION_RESPONSE_TIMEOUT_MS = 1000;
+
 export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
     definition: {
         id: 'mage-platform-lib:chat-platform',
@@ -342,48 +344,59 @@ export const chatPlatformEffect: Effects.EffectType<ChatPlatformEffectModel> = {
         const targetPlatforms = determinePlatformTargets(detectedPlatform, effect);
         logger.debug(`Target platforms: ${targetPlatforms.join(', ')}`);
 
+        const sendTasks: Promise<void>[] = [];
+
         // Send to each target platform
         for (const platform of targetPlatforms) {
-            try {
-                const message = getMessageForPlatform(platform, effect);
-                const replyId = getReplyIdForPlatform(platform, trigger, effect);
-                const chatter = getChatterForPlatform(platform, effect);
+            const message = getMessageForPlatform(platform, effect);
+            const replyId = getReplyIdForPlatform(platform, trigger, effect);
+            const chatter = getChatterForPlatform(platform, effect);
 
-                logger.debug(`Sending message to ${platform}: ${message.substring(0, 50)}...`);
+            logger.debug(`Sending message to ${platform}: ${message.substring(0, 50)}...`);
 
-                const request: any = { message, chatter, replyId };
+            const request: any = { message, chatter, replyId };
 
-                // For Twitch, check if we should send based on offline send mode
-                if (platform === 'twitch') {
-                    const { shouldSend, reason } = await shouldSendToTwitch(effect);
+            // For Twitch, check if we should send based on offline send mode
+            if (platform === 'twitch') {
+                const { shouldSend, reason } = await shouldSendToTwitch(effect);
 
-                    if (!shouldSend) {
-                        logger.debug(`Skipping Twitch: ${reason}`);
+                if (!shouldSend) {
+                    logger.debug(`Skipping Twitch: ${reason}`);
 
-                        // Send to chat feed if configured (only for Twitch since we control it)
-                        if (effect.offlineSendMode === 'chat-feed-only') {
-                            await sendToChatFeed(effect, reason || 'Unknown');
-                        }
-                        continue;
+                    // Send to chat feed if configured (only for Twitch since we control it)
+                    if (effect.offlineSendMode === 'chat-feed-only') {
+                        await sendToChatFeed(effect, reason || 'Unknown');
                     }
+                    continue;
                 }
-
-                // For Kick/YouTube, pass send mode to let integration decide
-                if (platform !== 'twitch') {
-                    request.offlineSendMode = effect.offlineSendMode ?? 'send-anyway';
-                }
-
-                await platformLib.platformDispatcher.dispatchOperation(
-                    'send-chat-message',
-                    platform,
-                    request
-                );
-
-                logger.debug(`Message sent successfully to ${platform}`);
-            } catch (error) {
-                logger.error(`Failed to send message to ${platform}: ${error}`);
             }
+
+            // For Kick/YouTube, pass send mode to let integration decide
+            if (platform !== 'twitch') {
+                request.offlineSendMode = effect.offlineSendMode ?? 'send-anyway';
+            }
+
+            sendTasks.push(
+                sendChatMessageWithTimeout(platform, request)
+                    .then((result) => {
+                        if (result.error) {
+                            logger.error(`Failed to send message to ${platform}: ${formatError(result.error)}`);
+                            return;
+                        }
+
+                        if (result.completed) {
+                            logger.debug(`Message sent successfully to ${platform}`);
+                        } else {
+                            logger.debug(`No integration response within ${INTEGRATION_RESPONSE_TIMEOUT_MS}ms for ${platform}`);
+                        }
+                    })
+                    .catch((error) => {
+                        logger.error(`Failed to send message to ${platform}: ${formatError(error)}`);
+                    })
+            );
         }
+
+        await Promise.all(sendTasks);
 
         return true;
     }
@@ -587,5 +600,64 @@ export async function sendToChatFeed(
         logger.debug('Sent message to chat feed as fallback');
     } catch (error) {
         logger.error(`Failed to send to chat feed: ${error}`);
+    }
+}
+
+type DispatchResult = { completed: boolean; error?: unknown };
+
+async function sendChatMessageWithTimeout(
+    platform: string,
+    request: unknown
+): Promise<DispatchResult> {
+    if (platform === 'twitch') {
+        try {
+            await platformLib.platformDispatcher.dispatchOperation(
+                'send-chat-message',
+                platform,
+                request
+            );
+            return { completed: true };
+        } catch (error) {
+            return { completed: true, error };
+        }
+    }
+
+    const dispatchPromise = platformLib.platformDispatcher
+        .dispatchOperation('send-chat-message', platform, request)
+        .then(() => ({ completed: true } as const))
+        .catch(error => ({ completed: true, error } as const));
+
+    const timeoutPromise = new Promise<DispatchResult>((resolve) => {
+        setTimeout(() => {
+            resolve({ completed: false });
+        }, INTEGRATION_RESPONSE_TIMEOUT_MS);
+    });
+
+    const result = await Promise.race([dispatchPromise, timeoutPromise]);
+
+    if (!result.completed) {
+        dispatchPromise.then((finalResult) => {
+            if ('error' in finalResult && finalResult.error) {
+                logger.error(`Failed to send message to ${platform}: ${formatError(finalResult.error)}`);
+            }
+        });
+    }
+
+    return result;
+}
+
+function formatError(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    if (typeof error === 'string') {
+        return error;
+    }
+
+    try {
+        return JSON.stringify(error);
+    } catch {
+        return 'Unknown error';
     }
 }
