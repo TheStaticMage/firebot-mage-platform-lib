@@ -35,8 +35,29 @@ export {
 export type {
     SendChatMessageRequest,
     SendChatMessageResponse,
-    GetUserDisplayNameRequest,
-    GetUserDisplayNameResponse,
+    PlatformUser,
+    GetUserByIdRequest,
+    GetUserByIdResponse,
+    GetUserByUsernameRequest,
+    GetUserByUsernameResponse,
+    GetOrCreateUserRequest,
+    GetOrCreateUserResponse,
+    SetUserMetadataRequest,
+    SetUserMetadataResponse,
+    IncrementUserMetadataRequest,
+    IncrementUserMetadataResponse,
+    SetUserRolesRequest,
+    SetUserRolesResponse,
+    UpdateLastSeenRequest,
+    UpdateLastSeenResponse,
+    SetChatMessagesRequest,
+    SetChatMessagesResponse,
+    IncrementChatMessagesRequest,
+    IncrementChatMessagesResponse,
+    SetMinutesInChannelRequest,
+    SetMinutesInChannelResponse,
+    IncrementMinutesInChannelRequest,
+    IncrementMinutesInChannelResponse,
     OperationName
 } from './operations';
 
@@ -69,6 +90,21 @@ export {
 export {
     detectPlatform
 } from './platform-detector';
+
+// User operation helpers
+export {
+    getUserById,
+    getUserByUsername,
+    getOrCreateUser,
+    setUserMetadata,
+    incrementUserMetadata,
+    setUserRoles,
+    updateLastSeen,
+    setChatMessages,
+    incrementChatMessages,
+    setMinutesInChannel,
+    incrementMinutesInChannel
+} from './user-operations';
 
 // Platform library ping check
 export {

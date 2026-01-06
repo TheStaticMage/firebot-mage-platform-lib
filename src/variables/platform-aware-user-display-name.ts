@@ -1,17 +1,17 @@
 import { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { GetUserDisplayNameRequest, GetUserDisplayNameResponse, detectPlatform } from '@thestaticmage/mage-platform-lib-client';
-import { PlatformDispatcher } from '../platform-dispatcher';
-import { LogWrapper } from '../main';
+import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
+import { firebot, LogWrapper } from '../main';
+import { PlatformUserDatabase } from '../internal/platform-user-database';
 
 /**
  * Creates a platform-aware user display name variable
- * @param platformDispatcher Platform dispatcher for routing requests
+ * @param userDatabase Platform user database for lookups
  * @param logger Logger instance
  * @returns ReplaceVariable that gets user display names across platforms
  */
 export function createPlatformAwareUserDisplayNameVariable(
-    platformDispatcher: PlatformDispatcher,
+    userDatabase: PlatformUserDatabase,
     logger: LogWrapper
 ): ReplaceVariable {
     return {
@@ -47,47 +47,59 @@ export function createPlatformAwareUserDisplayNameVariable(
             }
         },
         async evaluator(trigger: Trigger, username?: string): Promise<string> {
-            // 1. Determine the target username
+            // 1. Extract username from trigger or argument
             const targetUsername = username || extractUsernameFromTrigger(trigger);
-            if (!targetUsername) {
-                logger.debug('No username found in trigger or arguments');
-                return 'unknown';
-            }
 
-            // 2. Get fallback display name from trigger metadata
-            const fallbackDisplayName = extractDisplayNameFromTrigger(trigger);
-
-            // 3. Detect the platform
-            const platform = detectPlatform(trigger);
-
-            // 4. If platform is unknown, use fallback
-            if (platform === 'unknown') {
-                logger.debug('Unknown platform, using fallback display name');
-                return fallbackDisplayName || targetUsername;
-            }
-
-            // 5. Try to get display name from the platform
-            try {
-                logger.debug(`Getting display name for ${targetUsername} from ${platform}`);
-                const response = await platformDispatcher.dispatchOperation<
-                    GetUserDisplayNameRequest,
-                    GetUserDisplayNameResponse
-                >(
-                    'get-user-display-name',
-                    platform,
-                    { username: targetUsername }
-                );
-
-                if (response.displayName) {
-                    logger.debug(`Got display name from ${platform}: ${response.displayName}`);
-                    return response.displayName;
+            // 2. If NO username argument provided, check trigger display name first
+            if (!username) {
+                const triggerDisplayName = extractDisplayNameFromTrigger(trigger);
+                if (triggerDisplayName) {
+                    logger.debug(`Using display name from trigger: ${triggerDisplayName}`);
+                    return triggerDisplayName;
                 }
 
-                logger.debug(`No display name returned from ${platform}, using fallback`);
-                return fallbackDisplayName || targetUsername;
+                // No display name in trigger and no username in trigger
+                if (!targetUsername) {
+                    logger.debug('No username or display name found in trigger');
+                    return '';
+                }
+            }
+
+            // 3. If username argument WAS provided but is empty/invalid
+            if (!targetUsername) {
+                logger.debug('No valid username provided');
+                return '';
+            }
+
+            // 4. Detect platform for database lookup
+            const platform = detectPlatform(trigger);
+
+            // 5. Platform-specific database lookup
+            try {
+                if (platform === 'twitch') {
+                    logger.debug(`Getting Twitch display name for ${targetUsername}`);
+                    const viewer = await firebot.modules.userDb.getTwitchUserByUsername(targetUsername);
+                    return viewer?.displayName || targetUsername;
+                }
+                if (platform === 'kick' || platform === 'youtube') {
+                    logger.debug(`Getting ${platform} display name for ${targetUsername}`);
+                    const normalized = userDatabase.normalizeUsername(targetUsername);
+                    const user = await userDatabase.getUserByUsername(normalized, platform);
+
+                    if (user?.displayName) {
+                        logger.debug(`Found ${platform} display name: ${user.displayName}`);
+                        return user.displayName;
+                    }
+
+                    logger.debug(`No display name found for ${targetUsername}, using stripped username`);
+                    return stripUsernameDecorations(targetUsername);
+                }
+                // Unknown platform - return stripped username
+                logger.debug('Unknown platform, returning stripped username');
+                return stripUsernameDecorations(targetUsername);
             } catch (error) {
-                logger.debug(`Failed to get display name from ${platform}: ${error}, using fallback`);
-                return fallbackDisplayName || targetUsername;
+                logger.debug(`Failed to get display name from ${platform}: ${error}, using stripped username`);
+                return stripUsernameDecorations(targetUsername);
             }
         }
     };
@@ -144,4 +156,25 @@ function extractDisplayNameFromTrigger(trigger: Trigger): string | null {
     }
 
     return null;
+}
+
+/**
+ * Strips @ prefix and platform suffix while preserving capitalization
+ */
+function stripUsernameDecorations(username: string): string {
+    let stripped = username;
+
+    // Remove platform suffix (case-insensitive check, but preserve original case)
+    if (stripped.toLowerCase().endsWith('@kick')) {
+        stripped = stripped.slice(0, -5);
+    } else if (stripped.toLowerCase().endsWith('@youtube')) {
+        stripped = stripped.slice(0, -8);
+    }
+
+    // Remove leading @
+    if (stripped.startsWith('@')) {
+        stripped = stripped.slice(1);
+    }
+
+    return stripped || username;
 }

@@ -4,8 +4,7 @@ import { IntegrationDetector } from '../integration-detector';
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import { LogWrapper } from '../main';
 import {
-    SendChatMessageRequest,
-    GetUserDisplayNameRequest
+    SendChatMessageRequest
 } from '@thestaticmage/mage-platform-lib-client';
 
 jest.mock('../http-client/client');
@@ -118,50 +117,6 @@ describe('PlatformDispatcher', () => {
                 const result = await dispatcher.dispatchToTwitch('send-chat-message', request);
 
                 expect(result).toEqual({ success: false, error: 'Send failed' });
-            });
-        });
-
-        describe('get-user-display-name', () => {
-            it('should get display name from user database', async () => {
-                const request: GetUserDisplayNameRequest = { username: 'testuser' };
-                (mockModules.userDb.getTwitchUserByUsername as jest.Mock).mockResolvedValue({
-                    displayName: 'TestUser'
-                });
-
-                const result = await dispatcher.dispatchToTwitch('get-user-display-name', request);
-
-                expect(result).toEqual({ displayName: 'TestUser' });
-            });
-
-            it('should fallback to username if no display name', async () => {
-                const request: GetUserDisplayNameRequest = { username: 'testuser' };
-                (mockModules.userDb.getTwitchUserByUsername as jest.Mock).mockResolvedValue({
-                    displayName: null
-                });
-
-                const result = await dispatcher.dispatchToTwitch('get-user-display-name', request);
-
-                expect(result).toEqual({ displayName: 'testuser' });
-            });
-
-            it('should fallback to username if viewer not found', async () => {
-                const request: GetUserDisplayNameRequest = { username: 'testuser' };
-                (mockModules.userDb.getTwitchUserByUsername as jest.Mock).mockResolvedValue(null);
-
-                const result = await dispatcher.dispatchToTwitch('get-user-display-name', request);
-
-                expect(result).toEqual({ displayName: 'testuser' });
-            });
-
-            it('should handle errors gracefully', async () => {
-                const request: GetUserDisplayNameRequest = { username: 'testuser' };
-                (mockModules.userDb.getTwitchUserByUsername as jest.Mock).mockRejectedValue(
-                    new Error('Database error')
-                );
-
-                const result = await dispatcher.dispatchToTwitch('get-user-display-name', request);
-
-                expect(result).toEqual({ displayName: null });
             });
         });
 

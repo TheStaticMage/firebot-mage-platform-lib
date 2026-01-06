@@ -1,7 +1,7 @@
 {
     "name": "firebot-mage-platform-lib",
     "scriptOutputName": "firebot-mage-platform-lib",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Multi-platform support library for Firebot integrations",
     "main": "",
     "scripts": {
@@ -14,7 +14,7 @@
         "copy": "node ./scripts/copy-build.js",
         "prepare": "",
         "test": "jest",
-        "lint": "eslint src/ --max-warnings 0"
+        "lint": "eslint src/ --max-warnings 0 && eslint packages/client/src/ --max-warnings 0"
     },
     "author": "thestaticmage",
     "license": "GPL-3.0",
@@ -35,6 +35,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
+        "@seald-io/nedb": "^4.0.4",
         "@thestaticmage/mage-platform-lib-client": "file:packages/client",
         "axios": "^1.6.0",
         "semver": "^7.6.0"

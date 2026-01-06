@@ -5,17 +5,23 @@ import {
     initializeErrorModal,
     PLATFORM_LIB_VERSION
 } from '@thestaticmage/mage-platform-lib-client';
+import fs from 'fs';
+import path from 'path';
 import { platformCondition } from './conditions/platform';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { chatPlatformEffect } from './effects/chat-platform';
+import { updatePlatformUserCurrencyEffect } from './effects/update-platform-user-currency';
 import { platformFilter } from './filters/platform';
 import { IntegrationDetector } from './integration-detector';
+import { PlatformUserDatabase } from './internal/platform-user-database';
 import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
 import { platformRestriction } from './restrictions/platform';
 import { registerRoutes, unregisterRoutes } from './server/server';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
+import { createPlatformCurrencyVariable } from './variables/platform-currency';
+import { createPlatformCurrencyByUserIdVariable } from './variables/platform-currency-by-user-id';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -23,14 +29,17 @@ import { createPlatformAwareUserDisplayNameVariable } from './variables/platform
 export class PlatformLibrary {
     private logger: LogWrapper;
     private modules: ScriptModules;
+    private scriptDataDir: string;
     integrationDetector: IntegrationDetector;
     platformDispatcher: PlatformDispatcher;
+    public userDatabase: PlatformUserDatabase;
     private criticalErrors: string[] = [];
     private showErrorModal: (title: string, message: string) => Promise<void>;
 
     constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string) {
         this.logger = logger;
         this.modules = modules;
+        this.scriptDataDir = scriptDataDir;
 
         this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}`);
 
@@ -47,6 +56,8 @@ export class PlatformLibrary {
             modules,
             logger
         );
+
+        this.userDatabase = new PlatformUserDatabase(scriptDataDir, logger);
     }
 
     /**
@@ -82,6 +93,24 @@ export class PlatformLibrary {
             this.logger.debug('Registering HTTP endpoint handlers...');
             registerRoutes(this.modules, this.logger);
 
+            // Initialize platform user database
+            this.logger.debug('Initializing platform user database...');
+            const platformDbPath = path.join(this.scriptDataDir, 'platform-users.db');
+            const platformDbExists = fs.existsSync(platformDbPath);
+            let databaseReady = false;
+            try {
+                await this.userDatabase.initialize();
+                databaseReady = true;
+            } catch (error) {
+                const errorMsg = `Failed to initialize platform user database: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(errorMsg);
+            }
+
+            if (databaseReady) {
+                await this.migrateKickUsersIfNeeded(platformDbExists);
+            }
+
             // Register features
             this.logger.debug('Registering features...');
             this.registerFeatures();
@@ -97,6 +126,36 @@ export class PlatformLibrary {
             this.logger.error(`Failed to initialize Platform Library: ${error}`);
             await this.sendCriticalErrorNotification(`Failed to initialize Platform Library: ${error}`);
             throw error;
+        }
+    }
+
+    private async migrateKickUsersIfNeeded(platformDbExists: boolean): Promise<void> {
+        if (platformDbExists) {
+            this.logger.debug('Platform user database already exists. Skipping Kick migration.');
+            return;
+        }
+
+        const kickDataDir = path.resolve(this.scriptDataDir, '..', 'kick-integration');
+        if (!fs.existsSync(kickDataDir)) {
+            this.logger.debug('Kick integration data directory not found. Skipping Kick migration.');
+            return;
+        }
+
+        const kickDbPath = path.join(kickDataDir, 'kick-users.db');
+        if (!fs.existsSync(kickDbPath)) {
+            this.logger.debug('Kick user database not found. Skipping Kick migration.');
+            return;
+        }
+
+        try {
+            this.logger.info('Kick user database found. Starting migration.');
+            const result = await this.userDatabase.migrateFromKickDb(kickDbPath);
+            this.logger.info(`Kick migration complete. Migrated: ${result.migrated}, skipped: ${result.skipped}`);
+            if (result.conflicts.length > 0) {
+                this.logger.warn(`Kick migration conflicts: ${result.conflicts.length}`);
+            }
+        } catch (error) {
+            this.logger.error(`Kick migration failed: ${error}`);
         }
     }
 
@@ -262,7 +321,7 @@ export class PlatformLibrary {
         // Register platform-aware user display name variable
         try {
             const platformAwareUserDisplayNameVariable = createPlatformAwareUserDisplayNameVariable(
-                this.platformDispatcher,
+                this.userDatabase,
                 this.logger
             );
             replaceVariableManager.registerReplaceVariable(platformAwareUserDisplayNameVariable);
@@ -272,6 +331,38 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register platform-aware user display name variable: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform-aware user display name variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform currency by user ID variable
+        try {
+            const platformCurrencyByUserIdVariable = createPlatformCurrencyByUserIdVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformCurrencyByUserIdVariable);
+            this.logger.debug('Registered platform currency by user ID variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform currency by user ID variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform currency by user ID variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform currency variable
+        try {
+            const platformCurrencyVariable = createPlatformCurrencyVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformCurrencyVariable);
+            this.logger.debug('Registered platform currency variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform currency variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform currency variable registration failed. ${error}`);
             failureCount++;
         }
 
@@ -320,6 +411,18 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register platform-aware chat effect: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform-aware chat effect registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform user currency effect
+        try {
+            effectManager.registerEffect(updatePlatformUserCurrencyEffect);
+            this.logger.debug('Registered platform user currency effect');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform user currency effect: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform user currency effect registration failed. ${error}`);
             failureCount++;
         }
 

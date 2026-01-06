@@ -1,8 +1,26 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
 import { PLATFORM_LIB_VERSION, createPlatformLibVersionInfo } from '@thestaticmage/mage-platform-lib-client';
 import * as startupScriptsModule from '@thestaticmage/mage-platform-lib-client';
+import fs from 'fs';
 import { PlatformLibrary } from '../platform-library';
 import { LogWrapper } from '../main';
+
+const mockUserDatabase = {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    migrateFromKickDb: jest.fn().mockResolvedValue({
+        migrated: 0,
+        skipped: 0,
+        conflicts: []
+    })
+};
+
+jest.mock('../internal/platform-user-database', () => ({
+    PlatformUserDatabase: jest.fn().mockImplementation(() => mockUserDatabase)
+}));
+
+jest.mock('fs', () => ({
+    existsSync: jest.fn()
+}));
 
 jest.mock('@thestaticmage/mage-platform-lib-client', () => ({
     ...jest.requireActual('@thestaticmage/mage-platform-lib-client'),
@@ -21,6 +39,7 @@ describe('PlatformLibrary', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         (startupScriptsModule.resetStartupScriptsReflector as jest.Mock)();
+        (fs.existsSync as jest.Mock).mockImplementation((checkPath: string) => checkPath.includes('platform-users.db'));
 
         // Mock logger
         mockLogger = {
@@ -120,16 +139,16 @@ describe('PlatformLibrary', () => {
         it('should register all features', async () => {
             await platformLib.initialize();
 
-            // Should register 2 variables
-            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(2);
+            // Should register 4 variables
+            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(4);
             // Should register 1 filter
             expect(mockModules.eventFilterManager.registerFilter).toHaveBeenCalledTimes(1);
             // Should register 1 condition (platform)
             expect(mockModules.conditionManager.registerConditionType).toHaveBeenCalledTimes(1);
             // Should register 1 restriction
             expect(mockModules.restrictionManager.registerRestriction).toHaveBeenCalledTimes(1);
-            // Should register 1 effect
-            expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(1);
+            // Should register 2 effects
+            expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(2);
 
             // Should not display error modal when successful
             expect(mockFrontendCommunicator.send).not.toHaveBeenCalledWith('error', expect.anything());
@@ -147,6 +166,8 @@ describe('PlatformLibrary', () => {
             // Should log the registration errors
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform variable'));
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform-aware user display name variable'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform currency by user ID variable'));
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform currency variable'));
 
             // Should log error about failures
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Feature registration completed with'));
@@ -178,6 +199,35 @@ describe('PlatformLibrary', () => {
 
             // Should attempt to display critical error through error modal
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
+        });
+
+        it('skips Kick migration when platform database exists', async () => {
+            (fs.existsSync as jest.Mock).mockImplementation((checkPath: string) => checkPath.includes('platform-users.db'));
+
+            await platformLib.initialize();
+
+            expect(mockUserDatabase.migrateFromKickDb).not.toHaveBeenCalled();
+        });
+
+        it('runs Kick migration when platform database is missing and Kick database exists', async () => {
+            (fs.existsSync as jest.Mock).mockImplementation((checkPath: string) => {
+                if (checkPath.includes('platform-users.db')) {
+                    return false;
+                }
+                if (checkPath.includes('kick-integration')) {
+                    return true;
+                }
+                if (checkPath.includes('kick-users.db')) {
+                    return true;
+                }
+                return false;
+            });
+
+            await platformLib.initialize();
+
+            expect(mockUserDatabase.migrateFromKickDb).toHaveBeenCalledWith(
+                expect.stringContaining('kick-users.db')
+            );
         });
     });
 
