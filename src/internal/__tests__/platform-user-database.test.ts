@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import Datastore from '@seald-io/nedb';
 import fs from 'fs';
 import { PlatformUserDatabase } from '../platform-user-database';
@@ -260,6 +261,72 @@ describe('PlatformUserDatabase', () => {
         );
     });
 
+    it('parses JSON metadata payloads', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: {}
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        await db.setUserMetadata('kick', 'k123', 'foo', '{"bar":1}');
+
+        expect(mockDb.updateAsync).toHaveBeenCalledWith(
+            { _id: 'k123' },
+            { $set: { 'metadata.foo': { bar: 1 } } }
+        );
+    });
+
+    it('updates metadata when a property path is provided', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: { foo: { nested: { value: 'old' }, list: [1, 2] } }
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        await db.setUserMetadata('kick', 'k123', 'foo', '"new"', 'nested.value');
+
+        expect(mockDb.updateAsync).toHaveBeenCalledWith(
+            { _id: 'k123' },
+            { $set: { 'metadata.foo': { nested: { value: 'new' }, list: [1, 2] } } }
+        );
+    });
+
+    it('skips updates when property path is set but data is missing', async () => {
+        const mockDb = createMockDb();
+        mockDb.findOneAsync.mockResolvedValue({
+            _id: 'k123',
+            username: 'user',
+            displayName: 'user',
+            profilePicUrl: '',
+            lastSeen: 0,
+            currency: {},
+            metadata: {}
+        });
+        mockDb.updateAsync.mockResolvedValue(1);
+        const db = new PlatformUserDatabase('data', logger);
+        (db as any).db = mockDb;
+
+        await db.setUserMetadata('kick', 'k123', 'foo', '"new"', 'nested.value');
+
+        expect(mockDb.updateAsync).not.toHaveBeenCalled();
+    });
+
     it('updates lastSeen field', async () => {
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
@@ -387,12 +454,14 @@ describe('PlatformUserDatabase', () => {
         expect(newValue).toBe(10);
     });
 
-    it('throws error for invalid platform in increment', async () => {
+    it('logs warning for invalid platform in increment', async () => {
         const mockDb = createMockDb();
         const db = new PlatformUserDatabase('data', logger);
         (db as any).db = mockDb;
 
-        await expect(db.incrementUserMetadata('twitch', 'k123', 'test', 1)).rejects.toThrow();
+        const result = await db.incrementUserMetadata('twitch', 'k123', 'test', 1);
+        expect(result).toBe(0);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to increment user metadata'));
     });
 
     describe('user roles operations', () => {
