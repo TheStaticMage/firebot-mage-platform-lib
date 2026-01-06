@@ -37,6 +37,7 @@ describe('PlatformLibrary', () => {
     let platformLib: PlatformLibrary;
 
     beforeEach(() => {
+        jest.useFakeTimers();
         jest.clearAllMocks();
         (startupScriptsModule.resetStartupScriptsReflector as jest.Mock)();
         (fs.existsSync as jest.Mock).mockImplementation((checkPath: string) => checkPath.includes('platform-users.db'));
@@ -115,29 +116,41 @@ describe('PlatformLibrary', () => {
         platformLib = new PlatformLibrary(mockLogger, mockModules, '/mock/script-data/test');
     });
 
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
     describe('initialize', () => {
         it('should initialize successfully', async () => {
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             expect(mockLogger.info).toHaveBeenCalledWith(`Platform Library v${PLATFORM_LIB_VERSION} initialized successfully`);
         });
 
         it('should set up verification handlers', async () => {
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:ping', expect.any(Function));
             expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:get-version', expect.any(Function));
         });
 
         it('should set up dispatch handlers', async () => {
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:get-available-platforms', expect.any(Function));
             expect(mockFrontendCommunicator.on).toHaveBeenCalledWith('platform-lib:dispatch', expect.any(Function));
         });
 
         it('should register all features', async () => {
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             // Should register 4 variables
             expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(4);
@@ -161,7 +174,9 @@ describe('PlatformLibrary', () => {
             });
 
             // Should not throw, should complete initialization
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             // Should log the registration errors
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform variable'));
@@ -194,7 +209,13 @@ describe('PlatformLibrary', () => {
                 }
             });
 
-            await expect(platformLib.initialize()).rejects.toThrow(error);
+            // Start init and run timers in background
+            const initPromise = platformLib.initialize();
+            const timersPromise = jest.runAllTimersAsync();
+
+            // Wait for both to settle
+            await expect(Promise.all([initPromise, timersPromise])).rejects.toThrow(error);
+
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to initialize Platform Library'));
 
             // Should attempt to display critical error through error modal
@@ -204,7 +225,9 @@ describe('PlatformLibrary', () => {
         it('skips Kick migration when platform database exists', async () => {
             (fs.existsSync as jest.Mock).mockImplementation((checkPath: string) => checkPath.includes('platform-users.db'));
 
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             expect(mockUserDatabase.migrateFromKickDb).not.toHaveBeenCalled();
         });
@@ -223,7 +246,9 @@ describe('PlatformLibrary', () => {
                 return false;
             });
 
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
 
             expect(mockUserDatabase.migrateFromKickDb).toHaveBeenCalledWith(
                 expect.stringContaining('kick-users.db')
@@ -233,7 +258,9 @@ describe('PlatformLibrary', () => {
 
     describe('verification handlers', () => {
         beforeEach(async () => {
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
         });
 
         it('should respond to ping with version info', () => {
@@ -255,7 +282,9 @@ describe('PlatformLibrary', () => {
 
     describe('dispatch handlers', () => {
         beforeEach(async () => {
-            await platformLib.initialize();
+            const initPromise = platformLib.initialize();
+            await jest.runAllTimersAsync();
+            await initPromise;
         });
 
         it('should dispatch operations to platform', async () => {
