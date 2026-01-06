@@ -1,8 +1,8 @@
 import { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
 import { firebot, LogWrapper } from '../main';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
+import { determineTargetPlatform } from '../internal/trigger-helpers';
 
 /**
  * Creates a platform-aware user display name variable
@@ -71,14 +71,14 @@ export function createPlatformAwareUserDisplayNameVariable(
                 return '';
             }
 
-            // 4. Detect platform for database lookup
-            const platform = detectPlatform(trigger);
+            // 4. Detect platform for database lookup (username suffix takes priority)
+            const platform = determineTargetPlatform(undefined, targetUsername, trigger);
 
             // 5. Platform-specific database lookup
             try {
                 if (platform === 'twitch') {
                     logger.debug(`Getting Twitch display name for ${targetUsername}`);
-                    const viewer = await firebot.modules.userDb.getTwitchUserByUsername(targetUsername);
+                    const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(targetUsername);
                     return viewer?.displayName || targetUsername;
                 }
                 if (platform === 'kick' || platform === 'youtube') {

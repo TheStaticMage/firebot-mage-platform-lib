@@ -1,12 +1,11 @@
+import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
+import Datastore from '@seald-io/nedb';
 import fs from 'fs';
 import path from 'path';
-import Datastore from '@seald-io/nedb';
-import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { detectPlatform as detectTriggerPlatform } from '@thestaticmage/mage-platform-lib-client';
-import { firebot } from '../main';
-import { parseData } from './json-data-helpers';
+import { firebot, LogWrapper } from '../main';
 import type { PlatformUser } from '../types/platform-user';
-import { LogWrapper } from '../main';
+import { parseData } from './json-data-helpers';
+import { detectPlatformFromInputs } from './trigger-helpers';
 
 export interface MigrationConflict {
     type: 'id' | 'username';
@@ -104,34 +103,7 @@ export class PlatformUserDatabase {
      * @returns Detected platform or "unknown".
      */
     detectPlatform(userId?: string, username?: string, trigger?: Trigger): string {
-        if (userId) {
-            const trimmedUserId = userId.trim();
-            if (trimmedUserId.startsWith('k')) {
-                return 'kick';
-            }
-            if (trimmedUserId.startsWith('y')) {
-                return 'youtube';
-            }
-        }
-
-        if (username) {
-            const lowerUsername = username.toLowerCase();
-            if (lowerUsername.endsWith('@kick')) {
-                return 'kick';
-            }
-            if (lowerUsername.endsWith('@youtube')) {
-                return 'youtube';
-            }
-        }
-
-        if (trigger) {
-            const platform = detectTriggerPlatform(trigger);
-            if (platform && platform !== 'unknown') {
-                return platform;
-            }
-        }
-
-        return 'unknown';
+        return detectPlatformFromInputs(userId, username, trigger);
     }
 
     private validatePlatform(platform: string): void {

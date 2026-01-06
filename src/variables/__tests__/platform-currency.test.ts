@@ -10,6 +10,10 @@ jest.mock('../../main', () => ({
             currencyAccess: {
                 getCurrencyById: jest.fn(),
                 getCurrencyByName: jest.fn()
+            },
+            currencyManagerNew: {
+                getViewerCurrencyAmount: jest.fn(),
+                getViewerCurrencies: jest.fn()
             }
         }
     }
@@ -54,16 +58,21 @@ describe('platform currency variables', () => {
             expect(result).toBe(0);
         });
 
-        it('returns 0 when platform is twitch', async () => {
+        it('returns currency amount for Twitch user ID', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn().mockReturnValue('twitch'),
                 getUserCurrency: jest.fn()
             };
+            const currencyAccess = (firebot.modules as any).currencyAccess;
+            const currencyManagerNew = (firebot.modules as any).currencyManagerNew;
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
+            currencyManagerNew.getViewerCurrencies.mockResolvedValue({ points: 11 });
 
             const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'k123', 'points');
+            const result = await variable.evaluator({} as Trigger, '123456789', 'points');
 
-            expect(result).toBe(0);
+            expect(result).toBe(11);
+            expect(currencyManagerNew.getViewerCurrencies).toHaveBeenCalledWith('123456789', false);
         });
 
         it('returns 0 when platform is unknown', async () => {
@@ -221,6 +230,25 @@ describe('platform currency variables', () => {
             expect(result).toBe(0);
         });
 
+        it('returns currency amount for Twitch user', async () => {
+            const userDatabase = {
+                detectPlatform: jest.fn(),
+                normalizeUsername: jest.fn(),
+                getUserByUsername: jest.fn(),
+                getUserCurrency: jest.fn()
+            };
+            const currencyAccess = (firebot.modules as any).currencyAccess;
+            const currencyManagerNew = (firebot.modules as any).currencyManagerNew;
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
+            currencyManagerNew.getViewerCurrencyAmount.mockResolvedValue(24);
+
+            const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
+            const result = await variable.evaluator({} as Trigger, 'TestUser', 'points', 'twitch');
+
+            expect(result).toBe(24);
+            expect(currencyManagerNew.getViewerCurrencyAmount).toHaveBeenCalledWith('TestUser', 'points');
+        });
+
         it('returns 0 for unsupported platform', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
@@ -230,7 +258,7 @@ describe('platform currency variables', () => {
             };
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'twitch');
+            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'facebook');
 
             expect(result).toBe(0);
         });

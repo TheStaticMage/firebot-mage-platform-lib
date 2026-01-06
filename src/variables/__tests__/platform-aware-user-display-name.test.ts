@@ -8,8 +8,8 @@ import { createPlatformAwareUserDisplayNameVariable } from '../platform-aware-us
 jest.mock('../../main', () => ({
     firebot: {
         modules: {
-            userDb: {
-                getTwitchUserByUsername: jest.fn()
+            viewerDatabase: {
+                getViewerByUsername: jest.fn()
             }
         }
     },
@@ -26,6 +26,7 @@ describe('platformAwareUserDisplayName variable', () => {
         jest.clearAllMocks();
 
         mockUserDatabase = {
+            detectPlatform: PlatformUserDatabase.prototype.detectPlatform,
             getUserByUsername: jest.fn(),
             normalizeUsername: jest.fn(u => u.toLowerCase().replace(/^@|@(kick|youtube)$/gi, ''))
         } as unknown as jest.Mocked<PlatformUserDatabase>;
@@ -58,7 +59,7 @@ describe('platformAwareUserDisplayName variable', () => {
 
             expect(result).toBe('TriggerDisplay');
             expect(mockUserDatabase.getUserByUsername).not.toHaveBeenCalled();
-            expect(mockFirebot.modules.userDb.getTwitchUserByUsername).not.toHaveBeenCalled();
+            expect(mockFirebot.modules.viewerDatabase.getViewerByUsername).not.toHaveBeenCalled();
         });
 
         it('should return empty string when no display name and no username', async () => {
@@ -105,7 +106,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             } as unknown as Trigger;
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue({
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue({
                 displayName: 'DatabaseDisplay'
             });
 
@@ -125,14 +126,14 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue({
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue({
                 displayName: 'TestUser'
             });
 
             const result = await variable.evaluator(trigger);
 
             expect(result).toBe('TestUser');
-            expect(mockFirebot.modules.userDb.getTwitchUserByUsername).toHaveBeenCalledWith('testuser');
+            expect(mockFirebot.modules.viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         });
 
         it('should fallback to username when Twitch lookup returns no displayName', async () => {
@@ -144,7 +145,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue(null);
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue(null);
 
             const result = await variable.evaluator(trigger);
 
@@ -160,7 +161,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockRejectedValue(new Error('DB error'));
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockRejectedValue(new Error('DB error'));
 
             const result = await variable.evaluator(trigger);
 
@@ -341,14 +342,14 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue({
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue({
                 displayName: 'ArgumentDisplay'
             });
 
             const result = await variable.evaluator(trigger, 'arguser');
 
             expect(result).toBe('ArgumentDisplay');
-            expect(mockFirebot.modules.userDb.getTwitchUserByUsername).toHaveBeenCalledWith('arguser');
+            expect(mockFirebot.modules.viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('arguser');
         });
 
         it('should use trigger username if argument username is empty but use display name from trigger first', async () => {
@@ -360,7 +361,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue(null);
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue(null);
 
             const result = await variable.evaluator(trigger, '');
 
@@ -385,13 +386,13 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue({
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue({
                 displayName: 'ChatDisplay'
             });
 
             await variable.evaluator(trigger);
 
-            expect(mockFirebot.modules.userDb.getTwitchUserByUsername).toHaveBeenCalledWith('chatuser');
+            expect(mockFirebot.modules.viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('chatuser');
         });
 
         it('should prioritize eventData username over top-level', async () => {
@@ -406,13 +407,13 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockResolvedValue({
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockResolvedValue({
                 displayName: 'EventDisplay'
             });
 
             await variable.evaluator(trigger);
 
-            expect(mockFirebot.modules.userDb.getTwitchUserByUsername).toHaveBeenCalledWith('eventuser');
+            expect(mockFirebot.modules.viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('eventuser');
         });
     });
 
@@ -447,7 +448,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 }
             };
 
-            mockFirebot.modules.userDb.getTwitchUserByUsername.mockRejectedValue(
+            mockFirebot.modules.viewerDatabase.getViewerByUsername.mockRejectedValue(
                 new Error('Module error')
             );
 

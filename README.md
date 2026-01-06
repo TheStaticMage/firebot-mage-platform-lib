@@ -4,9 +4,14 @@ This is a [Firebot](https://firebot.app) plugin that provides centralized platfo
 
 ## Features
 
+- User database for non-Twitch users
 - Platform Variable (`$platform`) - Detects the platform from event context
 - Platform-Aware User Display Name Variable (`$platformAwareUserDisplayName`) - Resolve usernames across platforms
 - Platform Currency Variables (`$platformCurrency`, `$platformCurrencyByUserId`) - Read Kick and YouTube currency balances
+- Platform User Metadata Variable (`$platformUserMetadata`) - Get custom metadata
+- Platform User Avatar URL Variable (`$platformUserAvatarUrl`) - Get user avatar URLs
+- Platform Last Seen Variable (`$platformLastSeen`) - Get last seen date
+- Platform Chat Messages Variable (`$platformChatMessages`) - Get chat message count
 - [Platform-Aware Chat Effect](/doc/effects/chat-platform.md) - Send messages to specific platforms or all platforms
 - Update Platform User Currency Effect - Update currency for Twitch, Kick, and YouTube users
 - Set Platform User Metadata Effect - Save metadata associated to a user on Twitch, Kick, or YouTube
@@ -29,8 +34,8 @@ Requires Firebot v5.65 or later.
 | Platform | Support | Required Integration | Min Version |
 | ---------- | --------- | --------------------- | ------------- |
 | Twitch | ✓ Built-in | None | N/A |
-| Kick | ✓ Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.10.1+ |
-| YouTube | ✓ Via Integration | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.0.2+ |
+| Kick | ✓ Via Integration | [Mage Kick Integration](https://github.com/TheStaticMage/firebot-mage-kick-integration) | 0.11.0+ |
+| YouTube | ✓ Via Integration | [Mage YouTube Integration](https://github.com/TheStaticMage/firebot-mage-youtube-integration) | 0.0.4+ |
 
 :bulb: This library adds _no useful functionality_ without at least one of the non-Twitch integrations noted above.
 

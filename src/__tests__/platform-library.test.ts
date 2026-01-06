@@ -152,8 +152,8 @@ describe('PlatformLibrary', () => {
             await jest.runAllTimersAsync();
             await initPromise;
 
-            // Should register 4 variables
-            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(4);
+            // Should register 8 variables
+            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(8);
             // Should register 1 filter
             expect(mockModules.eventFilterManager.registerFilter).toHaveBeenCalledTimes(1);
             // Should register 1 condition (platform)
