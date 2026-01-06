@@ -4,6 +4,7 @@ import Datastore from '@seald-io/nedb';
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { detectPlatform as detectTriggerPlatform } from '@thestaticmage/mage-platform-lib-client';
 import { firebot } from '../main';
+import { parseData } from './json-data-helpers';
 import type { PlatformUser } from '../types/platform-user';
 import { LogWrapper } from '../main';
 
@@ -464,8 +465,34 @@ export class PlatformUserDatabase {
      * @param key Metadata key.
      * @param value Metadata value.
      */
-    async setUserMetadata(platform: string, userId: string, key: string, value: unknown): Promise<void> {
-        await this.updateUserField(platform, userId, `metadata.${key}`, value);
+    async setUserMetadata(platform: string, userId: string, key: string, value: unknown, propertyPath?: string): Promise<void> {
+        try {
+            const currentData = await this.getUserMetadata(platform, userId, key);
+            const dataToSet = parseData(value, currentData, propertyPath);
+            await this.updateUserField(platform, userId, `metadata.${key}`, dataToSet);
+        } catch (error) {
+            this.logger.warn(`Failed to set user metadata: ${error}`);
+        }
+    }
+
+    /**
+     * Remove a metadata key from a user.
+     * @param platform Platform identifier.
+     * @param userId Platform-prefixed user ID.
+     * @param key Metadata key to remove.
+     */
+    async removeUserMetadata(platform: string, userId: string, key: string): Promise<void> {
+        try {
+            this.validatePlatform(platform);
+            const db = this.ensureDb();
+            const normalizedUserId = this.validateUserId(userId);
+            await db.updateAsync(
+                { _id: normalizedUserId },
+                { $unset: { [`metadata.${key}`]: true } }
+            );
+        } catch (error) {
+            this.logger.warn(`Failed to remove user metadata: ${error}`);
+        }
     }
 
     /**
@@ -477,12 +504,13 @@ export class PlatformUserDatabase {
      * @returns New value after increment.
      */
     async incrementUserMetadata(platform: string, userId: string, key: string, amount: number): Promise<number> {
+        let numericValue = 0;
         try {
             this.validatePlatform(platform);
 
             // Get current value (treat non-numeric as 0)
             const currentValue = await this.getUserMetadata(platform, userId, key);
-            const numericValue = typeof currentValue === 'number' ? currentValue : 0;
+            numericValue = typeof currentValue === 'number' ? currentValue : 0;
 
             // Calculate new value
             const newValue = numericValue + amount;
@@ -492,8 +520,8 @@ export class PlatformUserDatabase {
 
             return newValue;
         } catch (error) {
-            this.logger.debug(`Failed to increment user metadata: ${error}`);
-            throw error;
+            this.logger.warn(`Failed to increment user metadata: ${error}`);
+            return numericValue || 0;
         }
     }
 

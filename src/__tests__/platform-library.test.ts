@@ -160,8 +160,8 @@ describe('PlatformLibrary', () => {
             expect(mockModules.conditionManager.registerConditionType).toHaveBeenCalledTimes(1);
             // Should register 1 restriction
             expect(mockModules.restrictionManager.registerRestriction).toHaveBeenCalledTimes(1);
-            // Should register 2 effects
-            expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(2);
+            // Should register 5 effects (chat-platform, update-currency, set-metadata, remove-metadata, increment-metadata)
+            expect(mockModules.effectManager.registerEffect).toHaveBeenCalledTimes(5);
 
             // Should not display error modal when successful
             expect(mockFrontendCommunicator.send).not.toHaveBeenCalledWith('error', expect.anything());

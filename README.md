@@ -9,6 +9,9 @@ This is a [Firebot](https://firebot.app) plugin that provides centralized platfo
 - Platform Currency Variables (`$platformCurrency`, `$platformCurrencyByUserId`) - Read Kick and YouTube currency balances
 - [Platform-Aware Chat Effect](/doc/effects/chat-platform.md) - Send messages to specific platforms or all platforms
 - Update Platform User Currency Effect - Update currency for Twitch, Kick, and YouTube users
+- Set Platform User Metadata Effect - Save metadata associated to a user on Twitch, Kick, or YouTube
+- Remove Platform User Metadata Effect - Remove a metadata key from a user on Twitch, Kick, or YouTube
+- Increment Platform User Metadata Effect - Increment a numeric metadata value for a user on Twitch, Kick, or YouTube
 - Platform Condition - Conditional logic based on platform
 - Platform Filter - Filter events by platform
 - Platform Restriction - Restrict effects to specific platforms

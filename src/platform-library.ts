@@ -10,6 +10,9 @@ import path from 'path';
 import { platformCondition } from './conditions/platform';
 import { KNOWN_INTEGRATIONS } from './constants';
 import { chatPlatformEffect } from './effects/chat-platform';
+import { incrementPlatformUserMetadataEffect } from './effects/increment-platform-user-metadata';
+import { removePlatformUserMetadataEffect } from './effects/remove-platform-user-metadata';
+import { setPlatformUserMetadataEffect } from './effects/set-platform-user-metadata';
 import { updatePlatformUserCurrencyEffect } from './effects/update-platform-user-currency';
 import { platformFilter } from './filters/platform';
 import { IntegrationDetector } from './integration-detector';
@@ -423,6 +426,42 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register platform user currency effect: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform user currency effect registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register set platform user metadata effect
+        try {
+            effectManager.registerEffect(setPlatformUserMetadataEffect);
+            this.logger.debug('Registered set platform user metadata effect');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register set platform user metadata effect: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Set platform user metadata effect registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register remove platform user metadata effect
+        try {
+            effectManager.registerEffect(removePlatformUserMetadataEffect);
+            this.logger.debug('Registered remove platform user metadata effect');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register remove platform user metadata effect: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Remove platform user metadata effect registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register increment platform user metadata effect
+        try {
+            effectManager.registerEffect(incrementPlatformUserMetadataEffect);
+            this.logger.debug('Registered increment platform user metadata effect');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register increment platform user metadata effect: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Increment platform user metadata effect registration failed. ${error}`);
             failureCount++;
         }
 
