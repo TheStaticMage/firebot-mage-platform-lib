@@ -34,7 +34,7 @@ describe('platform currency variables', () => {
                 getUserCurrency: jest.fn().mockResolvedValue(42)
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, 'k123', 'points');
@@ -85,7 +85,7 @@ describe('platform currency variables', () => {
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
             currencyAccess.getCurrencyById.mockReturnValue(null);
-            currencyAccess.getCurrencyByName.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyByName.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, 'k123', 'Points');
@@ -114,7 +114,7 @@ describe('platform currency variables', () => {
                 getUserCurrency: jest.fn().mockRejectedValue(new Error('User ID must be platform-prefixed'))
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, '123', 'points');
@@ -146,7 +146,7 @@ describe('platform currency variables', () => {
                 getUserCurrency: jest.fn().mockResolvedValue(15)
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');
@@ -162,7 +162,7 @@ describe('platform currency variables', () => {
                 getUserCurrency: jest.fn()
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');
@@ -195,7 +195,7 @@ describe('platform currency variables', () => {
                 getUserCurrency: jest.fn().mockResolvedValue(3)
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, 'User@YouTube', 'points');
@@ -213,7 +213,7 @@ describe('platform currency variables', () => {
                 getUserCurrency: jest.fn()
             };
             const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ _id: 'points' });
+            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
             const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');

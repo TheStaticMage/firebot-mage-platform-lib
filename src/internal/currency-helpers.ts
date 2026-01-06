@@ -8,8 +8,8 @@ export type CurrencyLookupResult = {
 export function resolveCurrencyId(currencyIdOrName: string): CurrencyLookupResult {
     const { currencyAccess } = firebot.modules as unknown as {
         currencyAccess: {
-            getCurrencyById: (id: string) => { _id: string } | null;
-            getCurrencyByName: (name: string) => { _id: string } | null;
+            getCurrencyById: (id: string) => { id: string } | null;
+            getCurrencyByName: (name: string) => { id: string } | null;
         };
     };
 
@@ -18,7 +18,7 @@ export function resolveCurrencyId(currencyIdOrName: string): CurrencyLookupResul
     if (!currency) {
         currency = currencyAccess.getCurrencyByName(currencyIdOrName);
         if (currency) {
-            currencyId = currency._id;
+            currencyId = currency.id;
         }
     }
 

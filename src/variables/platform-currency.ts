@@ -60,7 +60,7 @@ export function createPlatformCurrencyVariable(
 
                 const { currencyId, found } = resolveCurrencyId(currencyIdOrName);
                 if (!found || !currencyId) {
-                    logger.debug(`platformCurrency: Currency '${currencyIdOrName}' not found`);
+                    logger.debug(`platformCurrency: Currency '${currencyIdOrName}' not resolved or found (platform: ${targetPlatform}, user: ${normalizedUsername}, currencyId: ${currencyId}, found: ${found})`);
                     return 0;
                 }
 
