@@ -1,6 +1,7 @@
 import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import type { PlatformUserDatabase } from '../internal/platform-user-database';
+import { firebot } from '../main';
 import type { LogWrapper } from '../main';
 import { resolveCurrencyId } from '../internal/currency-helpers';
 
@@ -11,12 +12,16 @@ export function createPlatformCurrencyByUserIdVariable(
     return {
         definition: {
             handle: 'platformCurrencyByUserId',
-            description: 'Gets currency amount for a user on Kick or YouTube by user ID',
+            description: 'Gets currency amount for a user on Twitch, Kick, or YouTube by user ID',
             usage: 'platformCurrencyByUserId[userId, currencyIdOrName]',
             examples: [
                 {
                     usage: 'platformCurrencyByUserId[k12345, points]',
                     description: 'Get Kick user points balance'
+                },
+                {
+                    usage: 'platformCurrencyByUserId[123456789, points]',
+                    description: 'Get Twitch user points balance'
                 },
                 {
                     usage: 'platformCurrencyByUserId[$userId, coins]',
@@ -43,14 +48,24 @@ export function createPlatformCurrencyByUserIdVariable(
                     return 0;
                 }
 
-                if (targetPlatform !== 'kick' && targetPlatform !== 'youtube') {
-                    logger.debug(`platformCurrencyByUserId: Platform ${targetPlatform} not supported`);
-                    return 0;
-                }
-
                 const { currencyId, found } = resolveCurrencyId(currencyIdOrName);
                 if (!found || !currencyId) {
                     logger.debug(`platformCurrencyByUserId: Currency '${currencyIdOrName}' not found`);
+                    return 0;
+                }
+
+                if (targetPlatform === 'twitch') {
+                    const { currencyManagerNew } = firebot.modules as unknown as {
+                        currencyManagerNew: {
+                            getViewerCurrencies: (usernameOrId: string, isUsername?: boolean) => Promise<Record<string, number> | null>;
+                        };
+                    };
+                    const currencies = await currencyManagerNew.getViewerCurrencies(userId, false);
+                    return currencies?.[currencyId] ?? 0;
+                }
+
+                if (targetPlatform !== 'kick' && targetPlatform !== 'youtube') {
+                    logger.debug(`platformCurrencyByUserId: Platform ${targetPlatform} not supported`);
                     return 0;
                 }
 

@@ -23,8 +23,12 @@ import { platformRestriction } from './restrictions/platform';
 import { registerRoutes, unregisterRoutes } from './server/server';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
+import { createPlatformChatMessagesVariable } from './variables/platform-chat-messages';
 import { createPlatformCurrencyVariable } from './variables/platform-currency';
 import { createPlatformCurrencyByUserIdVariable } from './variables/platform-currency-by-user-id';
+import { createPlatformLastSeenVariable } from './variables/platform-last-seen';
+import { createPlatformUserAvatarUrlVariable } from './variables/platform-user-avatar-url';
+import { createPlatformUserMetadataVariable } from './variables/platform-user-metadata';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -366,6 +370,70 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register platform currency variable: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform currency variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform user metadata variable
+        try {
+            const platformUserMetadataVariable = createPlatformUserMetadataVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformUserMetadataVariable);
+            this.logger.debug('Registered platform user metadata variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform user metadata variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform user metadata variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform user avatar URL variable
+        try {
+            const platformUserAvatarUrlVariable = createPlatformUserAvatarUrlVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformUserAvatarUrlVariable);
+            this.logger.debug('Registered platform user avatar URL variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform user avatar URL variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform user avatar URL variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform last seen variable
+        try {
+            const platformLastSeenVariable = createPlatformLastSeenVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformLastSeenVariable);
+            this.logger.debug('Registered platform last seen variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform last seen variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform last seen variable registration failed. ${error}`);
+            failureCount++;
+        }
+
+        // Register platform chat messages variable
+        try {
+            const platformChatMessagesVariable = createPlatformChatMessagesVariable(
+                this.userDatabase,
+                this.logger
+            );
+            replaceVariableManager.registerReplaceVariable(platformChatMessagesVariable);
+            this.logger.debug('Registered platform chat messages variable');
+            successCount++;
+        } catch (error) {
+            const errorMsg = `Failed to register platform chat messages variable: ${error}`;
+            this.logger.error(errorMsg);
+            this.criticalErrors.push(`Platform chat messages variable registration failed. ${error}`);
             failureCount++;
         }
 
