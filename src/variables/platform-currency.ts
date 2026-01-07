@@ -1,9 +1,10 @@
 import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import type { PlatformUserDatabase } from '../internal/platform-user-database';
-import { firebot } from '../main';
-import type { LogWrapper } from '../main';
 import { resolveCurrencyId } from '../internal/currency-helpers';
+import type { PlatformUserDatabase } from '../internal/platform-user-database';
+import { normalizeUsername } from '../internal/trigger-helpers';
+import type { LogWrapper } from '../main';
+import { firebot } from '../main';
 
 export function createPlatformCurrencyVariable(
     userDatabase: PlatformUserDatabase,
@@ -13,18 +14,18 @@ export function createPlatformCurrencyVariable(
         definition: {
             handle: 'platformCurrency',
             description: 'Gets currency amount for a user on Twitch, Kick, or YouTube by username',
-            usage: 'platformCurrency[username, currencyIdOrName, platform?]',
+            usage: 'platformCurrency[currencyIdOrName, username, platform?]',
             examples: [
                 {
-                    usage: 'platformCurrency[staticmage, points, kick]',
+                    usage: 'platformCurrency[points, staticmage, kick]',
                     description: 'Get Kick user points balance by username'
                 },
                 {
-                    usage: 'platformCurrency[thestaticmage, points, twitch]',
+                    usage: 'platformCurrency[points, thestaticmage, twitch]',
                     description: 'Get Twitch user points balance by username'
                 },
                 {
-                    usage: 'platformCurrency[thestaticmage@youtube, coins]',
+                    usage: 'platformCurrency[coins, thestaticmage@youtube]',
                     description: 'Get YouTube user coins balance by username with suffix'
                 }
             ],
@@ -33,13 +34,13 @@ export function createPlatformCurrencyVariable(
         },
         evaluator: async (
             trigger: Trigger,
-            username?: string,
             currencyIdOrName?: string,
+            username?: string,
             platform?: string
         ): Promise<number> => {
             try {
-                if (!username || !currencyIdOrName) {
-                    logger.debug('platformCurrency: Missing username or currencyIdOrName');
+                if (!currencyIdOrName || !username) {
+                    logger.debug('platformCurrency: Missing currencyIdOrName or username');
                     return 0;
                 }
 
@@ -64,7 +65,8 @@ export function createPlatformCurrencyVariable(
                             getViewerCurrencyAmount: (username: string, currencyId: string) => Promise<number>;
                         };
                     };
-                    const twitchUsername = username.startsWith('@') ? username.slice(1) : username;
+                    logger.debug(`platformCurrency: Getting Twitch currency for ${username}, currencyId: ${currencyId}`);
+                    const twitchUsername = normalizeUsername(username);
                     return await currencyManagerNew.getViewerCurrencyAmount(twitchUsername, currencyId);
                 }
 
@@ -73,13 +75,14 @@ export function createPlatformCurrencyVariable(
                     return 0;
                 }
 
-                const normalizedUsername = userDatabase.normalizeUsername(username);
+                const normalizedUsername = normalizeUsername(username);
                 const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
                 if (!user) {
                     logger.debug(`platformCurrency: User not found for ${normalizedUsername}`);
                     return 0;
                 }
 
+                logger.debug(`platformCurrency: Getting ${targetPlatform} currency for ${normalizedUsername}, userId: ${user._id}, currencyId: ${currencyId}`);
                 return await userDatabase.getUserCurrency(targetPlatform, user._id, currencyId);
             } catch (error) {
                 logger.debug(`platformCurrency error: ${error}`);

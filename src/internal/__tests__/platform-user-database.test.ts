@@ -2,6 +2,7 @@
 import Datastore from '@seald-io/nedb';
 import fs from 'fs';
 import { PlatformUserDatabase } from '../platform-user-database';
+import { normalizeUsername } from '../trigger-helpers';
 import { firebot } from '../../main';
 import type { LogWrapper } from '../../main';
 
@@ -93,17 +94,13 @@ describe('PlatformUserDatabase', () => {
     });
 
     it('normalizes usernames', () => {
-        const db = new PlatformUserDatabase('data', logger);
-
-        expect(db.normalizeUsername('User@Kick')).toBe('user');
-        expect(db.normalizeUsername('@User@YouTube')).toBe('user');
-        expect(db.normalizeUsername('User')).toBe('user');
+        expect(normalizeUsername('User@Kick')).toBe('user');
+        expect(normalizeUsername('@User@YouTube')).toBe('user');
+        expect(normalizeUsername('User')).toBe('user');
     });
 
     it('throws when username normalizes to empty', () => {
-        const db = new PlatformUserDatabase('data', logger);
-
-        expect(() => db.normalizeUsername('@kick')).toThrow();
+        expect(() => normalizeUsername('@kick')).toThrow();
     });
 
     it('creates a user with defaults', async () => {

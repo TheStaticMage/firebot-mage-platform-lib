@@ -1,5 +1,6 @@
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
+import { logger } from '../main';
 
 /**
  * Detect a platform using ID prefix, username suffix, or trigger metadata.
@@ -15,6 +16,9 @@ export function detectPlatformFromInputs(
 ): string {
     if (userId) {
         const trimmedUserId = userId.trim();
+        if (/^\d+$/.test(trimmedUserId)) {
+            return 'twitch';
+        }
         if (trimmedUserId.startsWith('k')) {
             return 'kick';
         }
@@ -24,7 +28,14 @@ export function detectPlatformFromInputs(
     }
 
     if (username) {
-        const lowerUsername = username.toLowerCase();
+        const trimmedUsername = username.trim();
+        if (trimmedUsername !== '' && !trimmedUsername.includes('@')) {
+            return 'twitch';
+        }
+        const lowerUsername = trimmedUsername.toLowerCase();
+        if (lowerUsername.endsWith('@twitch')) {
+            return 'twitch';
+        }
         if (lowerUsername.endsWith('@kick')) {
             return 'kick';
         }
@@ -80,6 +91,11 @@ export function determineTargetPlatform(
     return 'unknown';
 }
 
+/**
+ * Extracts user ID from trigger metadata
+ * @param trigger Trigger object to extract user ID from
+ * @returns User ID from trigger metadata or undefined if not found
+ */
 export function extractTriggerUserId(trigger: Trigger | undefined): string | undefined {
     const metadata = trigger?.metadata as Record<string, unknown> | undefined;
     const chatMessage = metadata?.chatMessage as Record<string, unknown> | undefined;
@@ -122,4 +138,33 @@ export function extractTriggerUsername(trigger: Trigger): string | null {
     }
 
     return null;
+}
+
+/**
+ * Normalize a username by stripping platform suffixes and leading @.
+ * @param username Raw username input.
+ * @returns Normalized username.
+ * @throws Error when normalization results in empty value.
+ */
+export function normalizeUsername(username: string): string {
+    let normalized = username.trim().toLowerCase();
+
+    if (normalized.endsWith('@kick')) {
+        normalized = normalized.slice(0, -5);
+    } else if (normalized.endsWith('@youtube')) {
+        normalized = normalized.slice(0, -8);
+    } else if (normalized.endsWith('@twitch')) {
+        normalized = normalized.slice(0, -7);
+    }
+
+    if (normalized.startsWith('@')) {
+        normalized = normalized.slice(1);
+    }
+
+    if (normalized.trim() === '') {
+        logger.warn(`Username normalizes to empty string: "${username}"`);
+        return username;
+    }
+
+    return normalized;
 }

@@ -27,8 +27,7 @@ describe('platformAwareUserDisplayName variable', () => {
 
         mockUserDatabase = {
             detectPlatform: PlatformUserDatabase.prototype.detectPlatform,
-            getUserByUsername: jest.fn(),
-            normalizeUsername: jest.fn(u => u.toLowerCase().replace(/^@|@(kick|youtube)$/gi, ''))
+            getUserByUsername: jest.fn()
         } as unknown as jest.Mocked<PlatformUserDatabase>;
 
         mockLogger = {
@@ -110,7 +109,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 displayName: 'DatabaseDisplay'
             });
 
-            const result = await variable.evaluator(trigger, 'testuser');
+            const result = await variable.evaluator(trigger, '@TestUser@Twitch');
 
             expect(result).toBe('DatabaseDisplay');
         });
@@ -121,7 +120,7 @@ describe('platformAwareUserDisplayName variable', () => {
             const trigger: Trigger = {
                 type: 'event',
                 metadata: {
-                    username: 'testuser',
+                    username: '@TestUser@Twitch',
                     platform: 'twitch'
                 }
             };
@@ -140,7 +139,7 @@ describe('platformAwareUserDisplayName variable', () => {
             const trigger: Trigger = {
                 type: 'event',
                 metadata: {
-                    username: 'testuser',
+                    username: '@TestUser@Twitch',
                     platform: 'twitch'
                 }
             };
@@ -156,7 +155,7 @@ describe('platformAwareUserDisplayName variable', () => {
             const trigger: Trigger = {
                 type: 'event',
                 metadata: {
-                    username: 'testuser',
+                    username: '@TestUser@Twitch',
                     platform: 'twitch'
                 }
             };
@@ -215,7 +214,7 @@ describe('platformAwareUserDisplayName variable', () => {
 
             await variable.evaluator(trigger);
 
-            expect(mockUserDatabase.normalizeUsername).toHaveBeenCalledWith('@KickUser@kick');
+            expect(mockUserDatabase.getUserByUsername).toHaveBeenCalledWith('kickuser', 'kick');
         });
 
         it('should strip decorations when user not found', async () => {
@@ -346,7 +345,7 @@ describe('platformAwareUserDisplayName variable', () => {
                 displayName: 'ArgumentDisplay'
             });
 
-            const result = await variable.evaluator(trigger, 'arguser');
+            const result = await variable.evaluator(trigger, '@ArgUser@Twitch');
 
             expect(result).toBe('ArgumentDisplay');
             expect(mockFirebot.modules.viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('arguser');
@@ -443,7 +442,7 @@ describe('platformAwareUserDisplayName variable', () => {
             const trigger: Trigger = {
                 type: 'event',
                 metadata: {
-                    username: 'testuser',
+                    username: '@TestUser@Twitch',
                     platform: 'twitch'
                 }
             };

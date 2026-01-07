@@ -2,7 +2,7 @@ import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { firebot, LogWrapper } from '../main';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform, extractTriggerUsername } from '../internal/trigger-helpers';
+import { determineTargetPlatform, extractTriggerUsername, normalizeUsername } from '../internal/trigger-helpers';
 
 /**
  * Creates a platform-aware chat messages variable
@@ -64,8 +64,9 @@ export function createPlatformChatMessagesVariable(
                 // Twitch: use Firebot's viewer database
                 if (targetPlatform === 'twitch') {
                     logger.debug(`platformChatMessages: Getting Twitch chat messages for ${targetUsername}`);
+                    const normalizedTwitchUsername = normalizeUsername(targetUsername);
                     try {
-                        const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(targetUsername);
+                        const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(normalizedTwitchUsername);
                         return viewer?.chatMessages || 0;
                     } catch (error) {
                         logger.debug(`platformChatMessages: Error getting Twitch chat messages: ${error}`);
@@ -76,7 +77,7 @@ export function createPlatformChatMessagesVariable(
                 // Kick/YouTube: use platform user database
                 if (targetPlatform === 'kick' || targetPlatform === 'youtube') {
                     logger.debug(`platformChatMessages: Getting ${targetPlatform} chat messages for ${targetUsername}`);
-                    const normalizedUsername = userDatabase.normalizeUsername(targetUsername);
+                    const normalizedUsername = normalizeUsername(targetUsername);
                     const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
 
                     return user?.chatMessages || 0;

@@ -2,7 +2,7 @@ import { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/type
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { firebot, LogWrapper } from '../main';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform } from '../internal/trigger-helpers';
+import { determineTargetPlatform, normalizeUsername } from '../internal/trigger-helpers';
 
 /**
  * Creates a platform-aware user display name variable
@@ -77,13 +77,20 @@ export function createPlatformAwareUserDisplayNameVariable(
             // 5. Platform-specific database lookup
             try {
                 if (platform === 'twitch') {
-                    logger.debug(`Getting Twitch display name for ${targetUsername}`);
-                    const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(targetUsername);
-                    return viewer?.displayName || targetUsername;
+                    let normalizedTwitchUsername: string;
+                    try {
+                        normalizedTwitchUsername = normalizeUsername(targetUsername);
+                    } catch (error) {
+                        logger.debug(`Invalid Twitch username: ${error}`);
+                        return '';
+                    }
+                    logger.debug(`Getting Twitch display name for ${normalizedTwitchUsername}`);
+                    const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(normalizedTwitchUsername);
+                    return viewer?.displayName || normalizedTwitchUsername;
                 }
                 if (platform === 'kick' || platform === 'youtube') {
                     logger.debug(`Getting ${platform} display name for ${targetUsername}`);
-                    const normalized = userDatabase.normalizeUsername(targetUsername);
+                    const normalized = normalizeUsername(targetUsername);
                     const user = await userDatabase.getUserByUsername(normalized, platform);
 
                     if (user?.displayName) {
@@ -99,6 +106,14 @@ export function createPlatformAwareUserDisplayNameVariable(
                 return stripUsernameDecorations(targetUsername);
             } catch (error) {
                 logger.debug(`Failed to get display name from ${platform}: ${error}, using stripped username`);
+                if (platform === 'twitch') {
+                    try {
+                        return normalizeUsername(targetUsername);
+                    } catch (normalizedError) {
+                        logger.debug(`Invalid Twitch username: ${normalizedError}`);
+                        return '';
+                    }
+                }
                 return stripUsernameDecorations(targetUsername);
             }
         }

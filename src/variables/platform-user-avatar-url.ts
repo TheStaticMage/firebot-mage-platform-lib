@@ -2,7 +2,7 @@ import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { firebot, LogWrapper } from '../main';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform, extractTriggerUsername } from '../internal/trigger-helpers';
+import { determineTargetPlatform, extractTriggerUsername, normalizeUsername } from '../internal/trigger-helpers';
 
 /**
  * Creates a platform-aware user avatar URL variable
@@ -65,13 +65,14 @@ export function createPlatformUserAvatarUrlVariable(
                 // Twitch: use Twitch API to get avatar URL
                 if (targetPlatform === 'twitch') {
                     logger.debug(`platformUserAvatarUrl: Getting Twitch avatar for ${targetUsername}`);
+                    const normalizedTwitchUsername = normalizeUsername(targetUsername);
                     try {
                         const twitchApi = firebot.modules.twitchApi as {
                             users: {
                                 getUserByName: (username: string) => Promise<{ profilePictureUrl?: string } | null>;
                             };
                         };
-                        const userInfo = await twitchApi.users.getUserByName(targetUsername);
+                        const userInfo = await twitchApi.users.getUserByName(normalizedTwitchUsername);
                         return userInfo?.profilePictureUrl || '[No avatar found]';
                     } catch (error) {
                         logger.debug(`platformUserAvatarUrl: Error getting Twitch avatar: ${error}`);
@@ -82,7 +83,7 @@ export function createPlatformUserAvatarUrlVariable(
                 // Kick/YouTube: Use platform user database profilePicUrl
                 if (targetPlatform === 'kick' || targetPlatform === 'youtube') {
                     logger.debug(`platformUserAvatarUrl: Getting ${targetPlatform} avatar for ${targetUsername}`);
-                    const normalizedUsername = userDatabase.normalizeUsername(targetUsername);
+                    const normalizedUsername = normalizeUsername(targetUsername);
                     const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
 
                     if (user?.profilePicUrl) {

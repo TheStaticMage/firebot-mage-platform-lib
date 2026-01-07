@@ -1,6 +1,11 @@
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import * as platformLibClient from '@thestaticmage/mage-platform-lib-client';
-import { detectPlatformFromInputs, determineTargetPlatform, extractTriggerUsername } from '../trigger-helpers';
+import {
+    detectPlatformFromInputs,
+    determineTargetPlatform,
+    extractTriggerUsername,
+    normalizeUsername
+} from '../trigger-helpers';
 
 jest.mock('@thestaticmage/mage-platform-lib-client', () => ({
     ...jest.requireActual('@thestaticmage/mage-platform-lib-client'),
@@ -35,6 +40,11 @@ describe('trigger-helpers', () => {
         });
 
         describe('userId detection', () => {
+            it('returns twitch when userId is numeric', () => {
+                const result = detectPlatformFromInputs('123456');
+                expect(result).toBe('twitch');
+            });
+
             it('returns kick when userId starts with k', () => {
                 const result = detectPlatformFromInputs('k123456');
                 expect(result).toBe('kick');
@@ -77,9 +87,14 @@ describe('trigger-helpers', () => {
                 expect(result).toBe('kick');
             });
 
-            it('does not detect platform from username without suffix', () => {
+            it('returns twitch when username has no suffix', () => {
                 const result = detectPlatformFromInputs(undefined, 'testuser');
-                expect(result).toBe('unknown');
+                expect(result).toBe('twitch');
+            });
+
+            it('returns twitch when username ends with @twitch', () => {
+                const result = detectPlatformFromInputs(undefined, 'testuser@twitch');
+                expect(result).toBe('twitch');
             });
 
             it('prioritizes username over trigger', () => {
@@ -113,19 +128,19 @@ describe('trigger-helpers', () => {
                 expect(result).toBe('unknown');
             });
 
-            it('returns unknown when userId has no prefix and username has no suffix', () => {
+            it('returns twitch when userId is numeric and username has no suffix', () => {
                 const result = detectPlatformFromInputs('123456', 'testuser');
-                expect(result).toBe('unknown');
+                expect(result).toBe('twitch');
             });
 
-            it('returns unknown when userId is empty string', () => {
+            it('returns twitch when userId is empty string and username has no suffix', () => {
                 const result = detectPlatformFromInputs('', 'testuser');
-                expect(result).toBe('unknown');
+                expect(result).toBe('twitch');
             });
 
-            it('returns unknown when username is empty string', () => {
+            it('returns twitch when username is empty string and userId is numeric', () => {
                 const result = detectPlatformFromInputs('123456', '');
-                expect(result).toBe('unknown');
+                expect(result).toBe('twitch');
             });
         });
     });
@@ -275,6 +290,52 @@ describe('trigger-helpers', () => {
 
             const result = extractTriggerUsername(trigger);
             expect(result).toBeNull();
+        });
+    });
+
+    describe('normalizeUsername', () => {
+        it('lowercases usernames without decorations', () => {
+            expect(normalizeUsername('UserName')).toBe('username');
+        });
+
+        it('strips a leading @ and lowercases', () => {
+            expect(normalizeUsername('@UserName')).toBe('username');
+        });
+
+        it('strips @kick suffix case-insensitively', () => {
+            expect(normalizeUsername('User@Kick')).toBe('user');
+        });
+
+        it('strips @youtube suffix case-insensitively', () => {
+            expect(normalizeUsername('User@YouTube')).toBe('user');
+        });
+
+        it('strips @twitch suffix case-insensitively', () => {
+            expect(normalizeUsername('User@Twitch')).toBe('user');
+        });
+
+        it('strips both leading @ and platform suffix', () => {
+            expect(normalizeUsername('@User@Kick')).toBe('user');
+            expect(normalizeUsername('@User@YouTube')).toBe('user');
+            expect(normalizeUsername('@User@Twitch')).toBe('user');
+        });
+
+        it('trims whitespace before normalization', () => {
+            expect(normalizeUsername('  User@Kick  ')).toBe('user');
+        });
+
+        it('does not strip non-platform suffixes', () => {
+            expect(normalizeUsername('User@Mixer')).toBe('user@mixer');
+        });
+
+        it('does not strip internal @ characters', () => {
+            expect(normalizeUsername('user@name@kick')).toBe('user@name');
+        });
+
+        it('throws when normalization results in empty string', () => {
+            expect(() => normalizeUsername('@kick')).toThrow();
+            expect(() => normalizeUsername('   ')).toThrow();
+            expect(() => normalizeUsername('@')).toThrow();
         });
     });
 });
