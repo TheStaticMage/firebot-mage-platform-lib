@@ -1,18 +1,11 @@
 import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { firebot, LogWrapper } from '../main';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform, extractTriggerUsername, normalizeUsername } from '../internal/trigger-helpers';
+import { createPlatformVariableEvaluator } from '../internal/variable-helpers';
+import { firebot, logger } from '../main';
 
-/**
- * Creates a platform-aware chat messages variable
- * @param userDatabase Platform user database for lookups
- * @param logger Logger instance
- * @returns ReplaceVariable that gets chat message count across platforms
- */
 export function createPlatformChatMessagesVariable(
-    userDatabase: PlatformUserDatabase,
-    logger: LogWrapper
+    userDatabase: PlatformUserDatabase
 ): ReplaceVariable {
     return {
         definition: {
@@ -36,59 +29,66 @@ export function createPlatformChatMessagesVariable(
             categories: ['common', 'user based'],
             possibleDataOutput: ['number']
         },
+        evaluator: createPlatformVariableEvaluator<number>({
+            userDatabase,
+            variableName: 'platformChatMessages',
+            defaultValue: 0,
+            handleTwitch: async (username, normalizedUsername) => {
+                logger.debug(`platformChatMessages: Getting Twitch chat messages for ${username}`);
+                try {
+                    const { viewerDatabase } = firebot.modules;
+                    const viewer = await viewerDatabase.getViewerByUsername(normalizedUsername);
+                    return viewer?.chatMessages || 0;
+                } catch (error) {
+                    logger.debug(`platformChatMessages: Error getting Twitch chat messages: ${error}`);
+                    return 0;
+                }
+            },
+            handlePlatformDb: async (user) => {
+                return user?.chatMessages || 0;
+            }
+        })
+    };
+}
+
+/**
+ * Creates an override variable for chatMessages
+ * Matches Firebot's built-in signature: (trigger, username)
+ * But adds optional platform parameter at the end
+ */
+export function createChatMessagesOverride(
+    userDatabase: PlatformUserDatabase
+): ReplaceVariable {
+    const baseVariable = createPlatformChatMessagesVariable(userDatabase);
+
+    return {
+        definition: {
+            ...baseVariable.definition,
+            handle: 'chatMessages',
+            description: 'Displays the number of chat messages for a viewer across platforms (Twitch, Kick, YouTube)',
+            usage: 'chatMessages[username?, platform?]',
+            examples: [
+                {
+                    usage: 'chatMessages',
+                    description: 'Returns the number of chat messages for the current viewer'
+                },
+                {
+                    usage: 'chatMessages[username]',
+                    description: 'Returns the number of chat messages for the specified user'
+                },
+                {
+                    usage: 'chatMessages[username, kick]',
+                    description: 'Explicitly specify the platform (twitch, kick, youtube)'
+                }
+            ]
+        },
         evaluator: async (
             trigger: Trigger,
             username?: string,
             platform?: string
         ): Promise<number> => {
-            try {
-                // Extract username from trigger if not provided
-                let targetUsername: string | undefined = username;
-                if (!targetUsername) {
-                    targetUsername = extractTriggerUsername(trigger) || undefined;
-                }
-
-                if (!targetUsername) {
-                    logger.debug('platformChatMessages: No username provided');
-                    return 0;
-                }
-
-                // Determine target platform
-                const targetPlatform = determineTargetPlatform(platform, targetUsername, trigger);
-
-                if (!targetPlatform || targetPlatform === 'unknown') {
-                    logger.debug(`platformChatMessages: Cannot determine platform for username ${targetUsername}`);
-                    return 0;
-                }
-
-                // Twitch: use Firebot's viewer database
-                if (targetPlatform === 'twitch') {
-                    logger.debug(`platformChatMessages: Getting Twitch chat messages for ${targetUsername}`);
-                    const normalizedTwitchUsername = normalizeUsername(targetUsername);
-                    try {
-                        const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(normalizedTwitchUsername);
-                        return viewer?.chatMessages || 0;
-                    } catch (error) {
-                        logger.debug(`platformChatMessages: Error getting Twitch chat messages: ${error}`);
-                        return 0;
-                    }
-                }
-
-                // Kick/YouTube: use platform user database
-                if (targetPlatform === 'kick' || targetPlatform === 'youtube') {
-                    logger.debug(`platformChatMessages: Getting ${targetPlatform} chat messages for ${targetUsername}`);
-                    const normalizedUsername = normalizeUsername(targetUsername);
-                    const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
-
-                    return user?.chatMessages || 0;
-                }
-
-                logger.debug(`platformChatMessages: Platform ${targetPlatform} not supported`);
-                return 0;
-            } catch (error) {
-                logger.debug(`platformChatMessages error: ${error}`);
-                return 0;
-            }
+            // Call the base evaluator with platform as the third parameter
+            return baseVariable.evaluator(trigger, username, platform);
         }
     };
 }

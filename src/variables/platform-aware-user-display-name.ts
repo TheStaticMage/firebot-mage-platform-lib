@@ -1,18 +1,16 @@
-import { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
-import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { firebot, LogWrapper } from '../main';
+import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
+import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform, normalizeUsername } from '../internal/trigger-helpers';
+import { determineTargetPlatform, extractTriggerUsername, normalizeUsername } from '../internal/trigger-helpers';
+import { firebot, logger } from '../main';
 
 /**
  * Creates a platform-aware user display name variable
  * @param userDatabase Platform user database for lookups
- * @param logger Logger instance
  * @returns ReplaceVariable that gets user display names across platforms
  */
 export function createPlatformAwareUserDisplayNameVariable(
-    userDatabase: PlatformUserDatabase,
-    logger: LogWrapper
+    userDatabase: PlatformUserDatabase
 ): ReplaceVariable {
     return {
         definition: {
@@ -48,7 +46,7 @@ export function createPlatformAwareUserDisplayNameVariable(
         },
         async evaluator(trigger: Trigger, username?: string): Promise<string> {
             // 1. Extract username from trigger or argument
-            const targetUsername = username || extractUsernameFromTrigger(trigger);
+            const targetUsername = username || extractTriggerUsername(trigger);
 
             // 2. If NO username argument provided, check trigger display name first
             if (!username) {
@@ -121,35 +119,6 @@ export function createPlatformAwareUserDisplayNameVariable(
 }
 
 /**
- * Extracts username from trigger metadata
- */
-function extractUsernameFromTrigger(trigger: Trigger): string | null {
-    const metadata = trigger.metadata as Record<string, unknown>;
-    if (!metadata) {
-        return null;
-    }
-
-    // Priority 1: Chat message username
-    const chatMessage = metadata.chatMessage as Record<string, unknown>;
-    if (chatMessage && typeof chatMessage.username === 'string') {
-        return chatMessage.username;
-    }
-
-    // Priority 2: Event data username
-    const eventData = metadata.eventData as Record<string, unknown>;
-    if (eventData && typeof eventData.username === 'string') {
-        return eventData.username;
-    }
-
-    // Priority 3: Top-level metadata username
-    if (typeof metadata.username === 'string') {
-        return metadata.username;
-    }
-
-    return null;
-}
-
-/**
  * Extracts display name fallback from trigger metadata
  */
 function extractDisplayNameFromTrigger(trigger: Trigger): string | null {
@@ -192,4 +161,54 @@ function stripUsernameDecorations(username: string): string {
     }
 
     return stripped || username;
+}
+
+/**
+ * Creates an override variable for userDisplayName
+ * Matches Firebot's built-in signature: (trigger, username)
+ * But adds optional platform parameter at the end
+ */
+export function createUserDisplayNameOverride(
+    userDatabase: PlatformUserDatabase
+): ReplaceVariable {
+    const baseVariable = createPlatformAwareUserDisplayNameVariable(userDatabase);
+
+    return {
+        definition: {
+            ...baseVariable.definition,
+            handle: 'userDisplayName',
+            description: 'Gets the platform-aware display name for a user across platforms (Twitch, Kick, YouTube)',
+            usage: 'userDisplayName[username?, platform?]',
+            examples: [
+                {
+                    usage: 'userDisplayName',
+                    description: 'Returns the display name for the current user from the trigger'
+                },
+                {
+                    usage: 'userDisplayName[testuser]',
+                    description: 'Returns the display name for the specified username'
+                },
+                {
+                    usage: 'userDisplayName[testuser, kick]',
+                    description: 'Explicitly specify the platform (twitch, kick, youtube)'
+                }
+            ]
+        },
+        evaluator: async (
+            trigger: Trigger,
+            username?: string,
+            platform?: string
+        ): Promise<string> => {
+            // Call the base evaluator with platform as the third parameter
+            // The base evaluator signature is (trigger, username?: string)
+            // We need to handle the platform parameter here
+            if (platform) {
+                // If platform is explicitly provided, we need to append it to username
+                // The base evaluator will handle platform detection from username suffix
+                const usernameWithPlatform = platform ? `${username}@${platform}` : username;
+                return baseVariable.evaluator(trigger, usernameWithPlatform);
+            }
+            return baseVariable.evaluator(trigger, username);
+        }
+    };
 }

@@ -21,21 +21,13 @@ import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
 import { platformRestriction } from './restrictions/platform';
 import { registerRoutes, unregisterRoutes } from './server/server';
-import {
-    createChatMessagesOverride,
-    createCurrencyOverride,
-    createLastSeenOverride,
-    createUserAvatarUrlOverride,
-    createUserDisplayNameOverride,
-    createUserMetadataOverride
-} from './variables/override-variables';
 import { platformVariable } from './variables/platform';
-import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
-import { createPlatformChatMessagesVariable } from './variables/platform-chat-messages';
-import { createPlatformCurrencyVariable } from './variables/platform-currency';
-import { createPlatformLastSeenVariable } from './variables/platform-last-seen';
-import { createPlatformUserAvatarUrlVariable } from './variables/platform-user-avatar-url';
-import { createPlatformUserMetadataVariable } from './variables/platform-user-metadata';
+import { createPlatformAwareUserDisplayNameVariable, createUserDisplayNameOverride } from './variables/platform-aware-user-display-name';
+import { createPlatformChatMessagesVariable, createChatMessagesOverride } from './variables/platform-chat-messages';
+import { createPlatformCurrencyVariable, createCurrencyOverride } from './variables/platform-currency';
+import { createPlatformLastSeenVariable, createLastSeenOverride } from './variables/platform-last-seen';
+import { createPlatformUserAvatarUrlVariable, createUserAvatarUrlOverride } from './variables/platform-user-avatar-url';
+import { createPlatformUserMetadataVariable, createUserMetadataOverride } from './variables/platform-user-metadata';
 
 /**
  * Main Platform Library class that manages initialization and registration
@@ -355,8 +347,7 @@ export class PlatformLibrary {
         // Register platform-aware user display name variable
         try {
             const platformAwareUserDisplayNameVariable = createPlatformAwareUserDisplayNameVariable(
-                this.userDatabase,
-                this.logger
+                this.userDatabase
             );
             replaceVariableManager.registerReplaceVariable(platformAwareUserDisplayNameVariable);
             this.logger.debug('Registered platform-aware user display name variable');
@@ -371,8 +362,7 @@ export class PlatformLibrary {
         // Register platform currency variable
         try {
             const platformCurrencyVariable = createPlatformCurrencyVariable(
-                this.userDatabase,
-                this.logger
+                this.userDatabase
             );
             replaceVariableManager.registerReplaceVariable(platformCurrencyVariable);
             this.logger.debug('Registered platform currency variable');
@@ -387,8 +377,7 @@ export class PlatformLibrary {
         // Register platform user metadata variable
         try {
             const platformUserMetadataVariable = createPlatformUserMetadataVariable(
-                this.userDatabase,
-                this.logger
+                this.userDatabase
             );
             replaceVariableManager.registerReplaceVariable(platformUserMetadataVariable);
             this.logger.debug('Registered platform user metadata variable');
@@ -403,8 +392,7 @@ export class PlatformLibrary {
         // Register platform user avatar URL variable
         try {
             const platformUserAvatarUrlVariable = createPlatformUserAvatarUrlVariable(
-                this.userDatabase,
-                this.logger
+                this.userDatabase
             );
             replaceVariableManager.registerReplaceVariable(platformUserAvatarUrlVariable);
             this.logger.debug('Registered platform user avatar URL variable');
@@ -419,8 +407,7 @@ export class PlatformLibrary {
         // Register platform last seen variable
         try {
             const platformLastSeenVariable = createPlatformLastSeenVariable(
-                this.userDatabase,
-                this.logger
+                this.userDatabase
             );
             replaceVariableManager.registerReplaceVariable(platformLastSeenVariable);
             this.logger.debug('Registered platform last seen variable');
@@ -435,8 +422,7 @@ export class PlatformLibrary {
         // Register platform chat messages variable
         try {
             const platformChatMessagesVariable = createPlatformChatMessagesVariable(
-                this.userDatabase,
-                this.logger
+                this.userDatabase
             );
             replaceVariableManager.registerReplaceVariable(platformChatMessagesVariable);
             this.logger.debug('Registered platform chat messages variable');
@@ -484,8 +470,7 @@ export class PlatformLibrary {
             // Register userDisplayName override
             try {
                 const userDisplayNameOverride = createUserDisplayNameOverride(
-                    this.userDatabase,
-                    this.logger
+                    this.userDatabase
                 );
                 replaceVariableManager.registerReplaceVariable(userDisplayNameOverride);
                 this.logger.debug('Registered userDisplayName override');
@@ -500,8 +485,7 @@ export class PlatformLibrary {
             // Register userAvatarUrl override (with alias userProfileImageUrl)
             try {
                 const userAvatarUrlOverride = createUserAvatarUrlOverride(
-                    this.userDatabase,
-                    this.logger
+                    this.userDatabase
                 );
                 replaceVariableManager.registerReplaceVariable(userAvatarUrlOverride);
                 this.logger.debug('Registered userAvatarUrl override');
@@ -516,8 +500,7 @@ export class PlatformLibrary {
             // Register currency override
             try {
                 const currencyOverride = createCurrencyOverride(
-                    this.userDatabase,
-                    this.logger
+                    this.userDatabase
                 );
                 replaceVariableManager.registerReplaceVariable(currencyOverride);
                 this.logger.debug('Registered currency override');
@@ -532,8 +515,7 @@ export class PlatformLibrary {
             // Register chatMessages override
             try {
                 const chatMessagesOverride = createChatMessagesOverride(
-                    this.userDatabase,
-                    this.logger
+                    this.userDatabase
                 );
                 replaceVariableManager.registerReplaceVariable(chatMessagesOverride);
                 this.logger.debug('Registered chatMessages override');
@@ -548,8 +530,7 @@ export class PlatformLibrary {
             // Register userMetadata override
             try {
                 const userMetadataOverride = createUserMetadataOverride(
-                    this.userDatabase,
-                    this.logger
+                    this.userDatabase
                 );
                 replaceVariableManager.registerReplaceVariable(userMetadataOverride);
                 this.logger.debug('Registered userMetadata override');
@@ -564,8 +545,7 @@ export class PlatformLibrary {
             // Register lastSeen override
             try {
                 const lastSeenOverride = createLastSeenOverride(
-                    this.userDatabase,
-                    this.logger
+                    this.userDatabase
                 );
                 replaceVariableManager.registerReplaceVariable(lastSeenOverride);
                 this.logger.debug('Registered lastSeen override');

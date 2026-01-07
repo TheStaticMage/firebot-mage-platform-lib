@@ -1,7 +1,6 @@
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { createPlatformChatMessagesVariable } from '../platform-chat-messages';
 import { firebot } from '../../main';
-import type { LogWrapper } from '../../main';
 
 jest.mock('../../main', () => ({
     firebot: {
@@ -10,17 +9,16 @@ jest.mock('../../main', () => ({
                 getViewerByUsername: jest.fn()
             }
         }
-    }
-}));
-
-describe('platformChatMessages', () => {
-    const logger = {
+    },
+    logger: {
         debug: jest.fn(),
         error: jest.fn(),
         info: jest.fn(),
         warn: jest.fn()
-    } as unknown as LogWrapper;
+    }
+}));
 
+describe('platformChatMessages', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -32,7 +30,7 @@ describe('platformChatMessages', () => {
             getUserByUsername: jest.fn()
         };
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator({} as Trigger);
 
         expect(result).toBe(0);
@@ -50,7 +48,7 @@ describe('platformChatMessages', () => {
             chatMessages: 42
         });
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch'
@@ -70,7 +68,7 @@ describe('platformChatMessages', () => {
         const viewerDatabase = (firebot.modules as any).viewerDatabase;
         viewerDatabase.getViewerByUsername.mockResolvedValue(null);
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch'
@@ -98,7 +96,7 @@ describe('platformChatMessages', () => {
             })
         };
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick'
@@ -125,7 +123,7 @@ describe('platformChatMessages', () => {
             })
         };
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@youtube' } } as Trigger,
             'testuser@youtube'
@@ -141,7 +139,7 @@ describe('platformChatMessages', () => {
             getUserByUsername: jest.fn().mockResolvedValue(null)
         };
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick'
@@ -162,7 +160,7 @@ describe('platformChatMessages', () => {
             chatMessages: 99
         });
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             {} as Trigger,
             '@TestUser@Twitch',
@@ -183,7 +181,7 @@ describe('platformChatMessages', () => {
         const viewerDatabase = (firebot.modules as any).viewerDatabase;
         viewerDatabase.getViewerByUsername.mockRejectedValue(new Error('DB error'));
 
-        const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
+        const variable = createPlatformChatMessagesVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch'

@@ -1,7 +1,6 @@
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { createPlatformUserAvatarUrlVariable } from '../platform-user-avatar-url';
 import { firebot } from '../../main';
-import type { LogWrapper } from '../../main';
+import { createPlatformUserAvatarUrlVariable } from '../platform-user-avatar-url';
 
 jest.mock('../../main', () => ({
     firebot: {
@@ -12,32 +11,31 @@ jest.mock('../../main', () => ({
                 }
             }
         }
-    }
-}));
-
-describe('platformUserAvatarUrl', () => {
-    const logger = {
+    },
+    logger: {
         debug: jest.fn(),
         error: jest.fn(),
         info: jest.fn(),
         warn: jest.fn()
-    } as unknown as LogWrapper;
+    }
+}));
 
+describe('platformUserAvatarUrl', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    it('returns "No username available" when username is missing', async () => {
+    it('returns "No avatar found" when username is missing', async () => {
         const userDatabase = {
             detectPlatform: jest.fn(),
             normalizeUsername: jest.fn(),
             getUserByUsername: jest.fn()
         };
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator({} as Trigger);
 
-        expect(result).toBe('[No username available]');
+        expect(result).toBe('[No avatar found]');
     });
 
     it('gets Twitch avatar URL', async () => {
@@ -52,7 +50,7 @@ describe('platformUserAvatarUrl', () => {
             profilePictureUrl: 'https://example.com/avatar.png'
         });
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch'
@@ -74,13 +72,13 @@ describe('platformUserAvatarUrl', () => {
             profilePictureUrl: undefined
         });
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch'
         );
 
-        expect(result).toBe('[No avatar found]');
+        expect(result).toBe('[No Avatar Found]');
     });
 
     it('returns Kick avatar URL from platform user database', async () => {
@@ -101,7 +99,7 @@ describe('platformUserAvatarUrl', () => {
             })
         };
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick'
@@ -128,7 +126,7 @@ describe('platformUserAvatarUrl', () => {
             })
         };
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@youtube' } } as Trigger,
             'testuser@youtube'
@@ -155,7 +153,7 @@ describe('platformUserAvatarUrl', () => {
             })
         };
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick'
@@ -176,7 +174,7 @@ describe('platformUserAvatarUrl', () => {
             profilePictureUrl: 'https://example.com/avatar.png'
         });
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             {} as Trigger,
             '@TestUser@Twitch',
@@ -187,7 +185,7 @@ describe('platformUserAvatarUrl', () => {
         expect(result).toBe('https://example.com/avatar.png');
     });
 
-    it('handles Twitch API errors gracefully', async () => {
+    it('handles Twitch lookup errors gracefully', async () => {
         const userDatabase = {
             detectPlatform: jest.fn().mockReturnValue('twitch'),
             normalizeUsername: jest.fn(),
@@ -195,14 +193,14 @@ describe('platformUserAvatarUrl', () => {
         };
 
         const twitchApi = (firebot.modules as any).twitchApi;
-        twitchApi.users.getUserByName.mockRejectedValue(new Error('API error'));
+        twitchApi.users.getUserByName.mockRejectedValue(new Error('Lookup error'));
 
-        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
+        const variable = createPlatformUserAvatarUrlVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch'
         );
 
-        expect(result).toBe('[No avatar found]');
+        expect(result).toBe('[No Avatar Found]');
     });
 });

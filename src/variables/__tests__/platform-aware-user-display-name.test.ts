@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { PlatformUserDatabase } from '../../internal/platform-user-database';
-import { LogWrapper } from '../../main';
 import { createPlatformAwareUserDisplayNameVariable } from '../platform-aware-user-display-name';
 
 // Mock firebot module
@@ -13,12 +12,16 @@ jest.mock('../../main', () => ({
             }
         }
     },
-    LogWrapper: jest.fn()
+    logger: {
+        debug: jest.fn(),
+        error: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn()
+    }
 }));
 
 describe('platformAwareUserDisplayName variable', () => {
     let mockUserDatabase: jest.Mocked<PlatformUserDatabase>;
-    let mockLogger: Partial<LogWrapper>;
     let variable: ReturnType<typeof createPlatformAwareUserDisplayNameVariable>;
     let mockFirebot: any;
 
@@ -30,16 +33,9 @@ describe('platformAwareUserDisplayName variable', () => {
             getUserByUsername: jest.fn()
         } as unknown as jest.Mocked<PlatformUserDatabase>;
 
-        mockLogger = {
-            debug: jest.fn(),
-            error: jest.fn(),
-            info: jest.fn(),
-            warn: jest.fn()
-        };
-
         mockFirebot = require('../../main').firebot;
 
-        variable = createPlatformAwareUserDisplayNameVariable(mockUserDatabase, mockLogger as LogWrapper);
+        variable = createPlatformAwareUserDisplayNameVariable(mockUserDatabase);
     });
 
     describe('trigger display name priority', () => {
@@ -433,9 +429,6 @@ describe('platformAwareUserDisplayName variable', () => {
             const result = await variable.evaluator(trigger);
 
             expect(result).toBe('testuser');
-            expect(mockLogger.debug).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to get display name')
-            );
         });
 
         it('should handle Twitch module errors gracefully', async () => {

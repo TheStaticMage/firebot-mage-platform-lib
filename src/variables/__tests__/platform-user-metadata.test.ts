@@ -1,7 +1,6 @@
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { createPlatformUserMetadataVariable } from '../platform-user-metadata';
 import { firebot } from '../../main';
-import type { LogWrapper } from '../../main';
 
 jest.mock('../../main', () => ({
     firebot: {
@@ -10,17 +9,16 @@ jest.mock('../../main', () => ({
                 getViewerMetadata: jest.fn()
             }
         }
-    }
-}));
-
-describe('platformUserMetadata', () => {
-    const logger = {
+    },
+    logger: {
         debug: jest.fn(),
         error: jest.fn(),
         info: jest.fn(),
         warn: jest.fn()
-    } as unknown as LogWrapper;
+    }
+}));
 
+describe('platformUserMetadata', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -32,7 +30,7 @@ describe('platformUserMetadata', () => {
             getUserByUsername: jest.fn()
         };
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator({} as Trigger, '', 'key', 'default');
 
         expect(result).toBe('default');
@@ -45,7 +43,7 @@ describe('platformUserMetadata', () => {
             getUserByUsername: jest.fn()
         };
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator({} as Trigger, 'username', '', 'default');
 
         expect(result).toBe('default');
@@ -61,7 +59,7 @@ describe('platformUserMetadata', () => {
         const viewerMetadataManager = (firebot.modules as any).viewerMetadataManager;
         viewerMetadataManager.getViewerMetadata.mockResolvedValue('metadata-value');
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch',
@@ -82,7 +80,7 @@ describe('platformUserMetadata', () => {
         const viewerMetadataManager = (firebot.modules as any).viewerMetadataManager;
         viewerMetadataManager.getViewerMetadata.mockResolvedValue(null);
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch',
@@ -111,7 +109,7 @@ describe('platformUserMetadata', () => {
             })
         };
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick',
@@ -140,7 +138,7 @@ describe('platformUserMetadata', () => {
             })
         };
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@youtube' } } as Trigger,
             'testuser@youtube',
@@ -158,7 +156,7 @@ describe('platformUserMetadata', () => {
             getUserByUsername: jest.fn().mockResolvedValue(null)
         };
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick',
@@ -187,7 +185,7 @@ describe('platformUserMetadata', () => {
             })
         };
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: 'testuser@kick' } } as Trigger,
             'testuser@kick',
@@ -209,7 +207,7 @@ describe('platformUserMetadata', () => {
         const viewerMetadataManager = (firebot.modules as any).viewerMetadataManager;
         viewerMetadataManager.getViewerMetadata.mockResolvedValue('twitch-value');
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             {} as Trigger,
             '@TestUser@Twitch',
@@ -233,7 +231,7 @@ describe('platformUserMetadata', () => {
         const viewerMetadataManager = (firebot.modules as any).viewerMetadataManager;
         viewerMetadataManager.getViewerMetadata.mockRejectedValue(new Error('API error'));
 
-        const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
+        const variable = createPlatformUserMetadataVariable(userDatabase as any);
         const result = await variable.evaluator(
             { metadata: { username: '@TestUser@Twitch' } } as Trigger,
             '@TestUser@Twitch',

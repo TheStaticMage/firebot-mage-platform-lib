@@ -1,12 +1,9 @@
 import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform, extractTriggerUsername, normalizeUsername } from '../internal/trigger-helpers';
-import { firebot, LogWrapper } from '../main';
+import { createPlatformVariableEvaluator } from '../internal/variable-helpers';
+import { firebot, logger } from '../main';
 
-/**
- * Formats a timestamp to yyyy-MM-dd format
- */
 function formatDate(timestamp: number): string {
     const date = new Date(timestamp);
     const year = date.getUTCFullYear();
@@ -15,15 +12,8 @@ function formatDate(timestamp: number): string {
     return `${year}-${month}-${day}`;
 }
 
-/**
- * Creates a platform-aware last seen variable
- * @param userDatabase Platform user database for lookups
- * @param logger Logger instance
- * @returns ReplaceVariable that gets last seen date across platforms
- */
 export function createPlatformLastSeenVariable(
-    userDatabase: PlatformUserDatabase,
-    logger: LogWrapper
+    userDatabase: PlatformUserDatabase
 ): ReplaceVariable {
     return {
         definition: {
@@ -47,66 +37,72 @@ export function createPlatformLastSeenVariable(
             categories: ['common', 'user based'],
             possibleDataOutput: ['text']
         },
+        evaluator: createPlatformVariableEvaluator<string>({
+            userDatabase,
+            variableName: 'platformLastSeen',
+            defaultValue: 'Unknown User',
+            handleTwitch: async (username, normalizedUsername) => {
+                logger.debug(`platformLastSeen: Getting Twitch last seen for ${username}`);
+                try {
+                    const { viewerDatabase } = firebot.modules;
+                    const viewer = await viewerDatabase.getViewerByUsername(normalizedUsername);
+                    if (!viewer || !viewer.lastSeen) {
+                        return 'Unknown User';
+                    }
+                    return formatDate(viewer.lastSeen);
+                } catch (error) {
+                    logger.debug(`platformLastSeen: Error getting Twitch last seen: ${error}`);
+                    return 'Unknown User';
+                }
+            },
+            handlePlatformDb: async (user) => {
+                if (!user || !user.lastSeen) {
+                    return 'Unknown User';
+                }
+                return formatDate(user.lastSeen);
+            }
+        })
+    };
+}
+
+/**
+ * Creates an override variable for lastSeen
+ * Matches Firebot's built-in signature: (trigger, username)
+ * But adds optional platform parameter at the end
+ */
+export function createLastSeenOverride(
+    userDatabase: PlatformUserDatabase
+): ReplaceVariable {
+    const baseVariable = createPlatformLastSeenVariable(userDatabase);
+
+    return {
+        definition: {
+            ...baseVariable.definition,
+            handle: 'lastSeen',
+            description: 'Displays the date that a viewer was last seen in chat across platforms (Twitch, Kick, YouTube)',
+            usage: 'lastSeen[username?, platform?]',
+            examples: [
+                {
+                    usage: 'lastSeen',
+                    description: 'Returns the last seen date for the current viewer'
+                },
+                {
+                    usage: 'lastSeen[username]',
+                    description: 'Returns the last seen date for the specified viewer'
+                },
+                {
+                    usage: 'lastSeen[username, kick]',
+                    description: 'Explicitly specify the platform (twitch, kick, youtube)'
+                }
+            ]
+        },
         evaluator: async (
             trigger: Trigger,
             username?: string,
             platform?: string
         ): Promise<string> => {
-            try {
-                // Extract username from trigger if not provided
-                let targetUsername: string | undefined = username;
-                if (!targetUsername) {
-                    targetUsername = extractTriggerUsername(trigger) || undefined;
-                }
-
-                if (!targetUsername) {
-                    logger.debug('platformLastSeen: No username provided');
-                    return 'Unknown User';
-                }
-
-                // Determine target platform
-                const targetPlatform = determineTargetPlatform(platform, targetUsername, trigger);
-
-                if (!targetPlatform || targetPlatform === 'unknown') {
-                    logger.debug(`platformLastSeen: Cannot determine platform for username ${targetUsername}`);
-                    return 'Unknown User';
-                }
-
-                // Twitch: use Firebot's viewer database
-                if (targetPlatform === 'twitch') {
-                    logger.debug(`platformLastSeen: Getting Twitch last seen for ${targetUsername}`);
-                    const normalizedTwitchUsername = normalizeUsername(targetUsername);
-                    try {
-                        const viewer = await firebot.modules.viewerDatabase.getViewerByUsername(normalizedTwitchUsername);
-                        if (!viewer || !viewer.lastSeen) {
-                            return 'Unknown User';
-                        }
-                        return formatDate(viewer.lastSeen);
-                    } catch (error) {
-                        logger.debug(`platformLastSeen: Error getting Twitch last seen: ${error}`);
-                        return 'Unknown User';
-                    }
-                }
-
-                // Kick/YouTube: use platform user database
-                if (targetPlatform === 'kick' || targetPlatform === 'youtube') {
-                    logger.debug(`platformLastSeen: Getting ${targetPlatform} last seen for ${targetUsername}`);
-                    const normalizedUsername = normalizeUsername(targetUsername);
-                    const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
-
-                    if (!user || !user.lastSeen) {
-                        return 'Unknown User';
-                    }
-
-                    return formatDate(user.lastSeen);
-                }
-
-                logger.debug(`platformLastSeen: Platform ${targetPlatform} not supported`);
-                return 'Unknown User';
-            } catch (error) {
-                logger.debug(`platformLastSeen error: ${error}`);
-                return 'Unknown User';
-            }
+            // Call the base evaluator with platform as the third parameter
+            return baseVariable.evaluator(trigger, username, platform);
         }
     };
 }
