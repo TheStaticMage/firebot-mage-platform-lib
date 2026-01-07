@@ -1,6 +1,7 @@
 import { ConditionType, ConditionSettings } from '@crowbartools/firebot-custom-scripts-types/types/modules/condition-manager';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
+import { checkMatch } from '../internal/platform-helpers';
 
 type PlatformComparison = 'is' | 'isNot';
 
@@ -43,7 +44,7 @@ export const platformCondition: ConditionType<PlatformComparison, 'none', 'prese
         const detectedPlatform = detectPlatform(trigger);
         const targetPlatform = conditionSettings.rightSideValue;
 
-        const matches = checkMatch(detectedPlatform, targetPlatform);
+        const matches = checkMatch(detectedPlatform, targetPlatform, { allowUnknownMatch: false });
 
         if (conditionSettings.comparisonType === 'is') {
             return matches;
@@ -54,24 +55,3 @@ export const platformCondition: ConditionType<PlatformComparison, 'none', 'prese
         return false;
     }
 };
-
-/**
- * Checks if the detected platform matches the target platform
- * @param detectedPlatform The platform detected from the trigger
- * @param targetPlatform The platform to compare against
- * @returns True if the platforms match
- */
-function checkMatch(detectedPlatform: string, targetPlatform: string): boolean {
-    // "unknown" never matches
-    if (detectedPlatform === 'unknown') {
-        return false;
-    }
-
-    // "any" matches any known platform (kick, twitch, youtube)
-    if (targetPlatform === 'any') {
-        return detectedPlatform === 'kick' || detectedPlatform === 'twitch' || detectedPlatform === 'youtube';
-    }
-
-    // Direct comparison
-    return detectedPlatform === targetPlatform;
-}

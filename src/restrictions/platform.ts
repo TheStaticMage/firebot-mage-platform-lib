@@ -1,6 +1,7 @@
 import { RestrictionType } from '@crowbartools/firebot-custom-scripts-types/types/restrictions';
 import { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { detectPlatform } from '@thestaticmage/mage-platform-lib-client';
+import { checkMatch } from '../internal/platform-helpers';
 
 interface PlatformRestrictionModel {
     comparison: 'is' | 'isNot';
@@ -84,7 +85,7 @@ export const platformRestriction: RestrictionType<PlatformRestrictionModel> = {
         const detectedPlatform = detectPlatform(triggerData);
         const targetPlatform = restrictionData.platform;
 
-        const matches = checkMatch(detectedPlatform, targetPlatform);
+        const matches = checkMatch(detectedPlatform, targetPlatform, { allowUnknownMatch: true });
 
         if (restrictionData.comparison === 'is') {
             return matches;
@@ -95,24 +96,3 @@ export const platformRestriction: RestrictionType<PlatformRestrictionModel> = {
         return false;
     }
 };
-
-/**
- * Checks if the detected platform matches the target platform
- * @param detectedPlatform The platform detected from the trigger
- * @param targetPlatform The platform to compare against
- * @returns True if the platforms match
- */
-function checkMatch(detectedPlatform: string, targetPlatform: string): boolean {
-    // "unknown" can only match if explicitly targeting unknown
-    if (detectedPlatform === 'unknown') {
-        return targetPlatform === 'unknown';
-    }
-
-    // "any" matches any known platform (kick, twitch, youtube)
-    if (targetPlatform === 'any') {
-        return detectedPlatform === 'kick' || detectedPlatform === 'twitch' || detectedPlatform === 'youtube';
-    }
-
-    // Direct comparison
-    return detectedPlatform === targetPlatform;
-}

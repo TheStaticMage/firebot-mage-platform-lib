@@ -1,14 +1,11 @@
 import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager';
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { resolveCurrencyId } from '../internal/currency-helpers';
 import type { PlatformUserDatabase } from '../internal/platform-user-database';
-import { normalizeUsername } from '../internal/trigger-helpers';
-import type { LogWrapper } from '../main';
-import { firebot } from '../main';
+import { createPlatformCurrencyEvaluator } from '../internal/variable-helpers';
+import { firebot, logger } from '../main';
 
 export function createPlatformCurrencyVariable(
-    userDatabase: PlatformUserDatabase,
-    logger: LogWrapper
+    userDatabase: PlatformUserDatabase
 ): ReplaceVariable {
     return {
         definition: {
@@ -32,62 +29,65 @@ export function createPlatformCurrencyVariable(
             categories: ['common', 'user based'],
             possibleDataOutput: ['number']
         },
+        evaluator: createPlatformCurrencyEvaluator({
+            userDatabase,
+            variableName: 'platformCurrency',
+            handleTwitch: async (username, normalizedUsername, currencyId) => {
+                const { currencyManagerNew } = firebot.modules as unknown as {
+                    currencyManagerNew: {
+                        getViewerCurrencyAmount: (username: string, currencyId: string) => Promise<number>;
+                    };
+                };
+                logger.debug(`platformCurrency: Getting Twitch currency for ${username}, currencyId: ${currencyId}`);
+                return await currencyManagerNew.getViewerCurrencyAmount(normalizedUsername, currencyId);
+            },
+            handlePlatformDb: async (user, platform, currencyId) => {
+                logger.debug(`platformCurrency: Getting ${platform} currency for ${user.username}, userId: ${user._id}, currencyId: ${currencyId}`);
+                return await userDatabase.getUserCurrency(platform, user._id, currencyId);
+            }
+        })
+    };
+}
+
+/**
+ * Creates an override variable for currency
+ * Matches Firebot's built-in signature: (trigger, currencyName, username?)
+ * But adds optional platform parameter at the end
+ */
+export function createCurrencyOverride(
+    userDatabase: PlatformUserDatabase
+): ReplaceVariable {
+    const baseVariable = createPlatformCurrencyVariable(userDatabase);
+
+    return {
+        definition: {
+            ...baseVariable.definition,
+            handle: 'currency',
+            description: 'Gets currency amount for a user on Twitch, Kick, or YouTube by username',
+            usage: 'currency[currencyName, username?, platform?]',
+            examples: [
+                {
+                    usage: 'currency[points]',
+                    description: 'Get points balance for the current user'
+                },
+                {
+                    usage: 'currency[points, testuser]',
+                    description: 'Get points balance for a specific user'
+                },
+                {
+                    usage: 'currency[points, testuser, kick]',
+                    description: 'Get points balance for a specific user on a specific platform'
+                }
+            ]
+        },
         evaluator: async (
             trigger: Trigger,
-            currencyIdOrName?: string,
+            currencyName?: string,
             username?: string,
             platform?: string
         ): Promise<number> => {
-            try {
-                if (!currencyIdOrName || !username) {
-                    logger.debug('platformCurrency: Missing currencyIdOrName or username');
-                    return 0;
-                }
-
-                let targetPlatform = platform;
-                if (!targetPlatform || targetPlatform === 'unknown') {
-                    targetPlatform = userDatabase.detectPlatform(undefined, username, trigger);
-                }
-                if (!targetPlatform || targetPlatform === 'unknown') {
-                    logger.debug(`platformCurrency: Cannot determine platform for username ${username}`);
-                    return 0;
-                }
-
-                const { currencyId, found } = resolveCurrencyId(currencyIdOrName);
-                if (!found || !currencyId) {
-                    logger.warn(`platformCurrency: Currency '${currencyIdOrName}' not resolved or found (platform: ${targetPlatform}, user: ${username}, currencyId: ${currencyId}, found: ${found})`);
-                    return 0;
-                }
-
-                if (targetPlatform === 'twitch') {
-                    const { currencyManagerNew } = firebot.modules as unknown as {
-                        currencyManagerNew: {
-                            getViewerCurrencyAmount: (username: string, currencyId: string) => Promise<number>;
-                        };
-                    };
-                    logger.debug(`platformCurrency: Getting Twitch currency for ${username}, currencyId: ${currencyId}`);
-                    const twitchUsername = normalizeUsername(username);
-                    return await currencyManagerNew.getViewerCurrencyAmount(twitchUsername, currencyId);
-                }
-
-                if (targetPlatform !== 'kick' && targetPlatform !== 'youtube') {
-                    logger.error(`platformCurrency: Platform ${targetPlatform} not supported`);
-                    return 0;
-                }
-
-                const normalizedUsername = normalizeUsername(username);
-                const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
-                if (!user) {
-                    logger.debug(`platformCurrency: User not found for ${normalizedUsername}`);
-                    return 0;
-                }
-
-                logger.debug(`platformCurrency: Getting ${targetPlatform} currency for ${normalizedUsername}, userId: ${user._id}, currencyId: ${currencyId}`);
-                return await userDatabase.getUserCurrency(targetPlatform, user._id, currencyId);
-            } catch (error) {
-                logger.debug(`platformCurrency error: ${error}`);
-                return 0;
-            }
+            // Call the base evaluator with platform as the fourth parameter
+            return baseVariable.evaluator(trigger, currencyName, username, platform);
         }
     };
 }

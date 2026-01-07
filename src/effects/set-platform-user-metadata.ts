@@ -1,5 +1,5 @@
 import type { Effects } from '@crowbartools/firebot-custom-scripts-types/types/effects';
-import { extractTriggerUserId } from '../internal/trigger-helpers';
+import { resolvePlatformForEffect } from '../internal/effect-helpers';
 import { firebot, logger, platformLib } from '../main';
 
 interface SetPlatformUserMetadataEffectModel {
@@ -136,14 +136,8 @@ export const setPlatformUserMetadataEffect: Effects.EffectType<SetPlatformUserMe
                 return false;
             }
 
-            let detectedPlatform = platform;
-            if (!detectedPlatform || detectedPlatform === 'auto-detect') {
-                const triggerUserId = extractTriggerUserId(event.trigger);
-                detectedPlatform = platformLib.userDatabase.detectPlatform(triggerUserId, username, event.trigger);
-            }
-
-            if (!detectedPlatform || detectedPlatform === 'unknown') {
-                logger.error(`Set Platform User Metadata: Cannot determine platform for user ${username}`);
+            const detectedPlatform = await resolvePlatformForEffect(platform, username, event.trigger, 'Set Platform User Metadata');
+            if (!detectedPlatform) {
                 return false;
             }
 

@@ -1,4 +1,5 @@
 import type { Effects } from '@crowbartools/firebot-custom-scripts-types/types/effects';
+import { resolvePlatformForEffect } from '../internal/effect-helpers';
 import { extractTriggerUserId } from '../internal/trigger-helpers';
 import { firebot, logger, platformLib } from '../main';
 
@@ -200,15 +201,12 @@ export const updatePlatformUserCurrencyEffect: Effects.EffectType<UpdatePlatform
             const currencyDelta = action === 'Remove' ? -normalizedAmount : normalizedAmount;
             const adjustType = action === 'Set' ? 'set' : 'adjust';
 
-            const triggerUserId = extractTriggerUserId(event.trigger);
-            if (!platform || platform === 'auto-detect' || platform === 'unknown') {
-                platform = platformLib.userDatabase.detectPlatform(triggerUserId, username, event.trigger);
-            }
-
-            if (!platform || platform === 'unknown') {
-                logger.error(`Update Platform User Currency: Cannot determine platform for user ${username}`);
+            const detectedPlatform = await resolvePlatformForEffect(platform, username, event.trigger, 'Update Platform User Currency');
+            if (!detectedPlatform) {
                 return false;
             }
+
+            platform = detectedPlatform;
 
             if (platform === 'twitch') {
                 return await handleTwitchCurrency(target, username, currencyId, currencyDelta, adjustType);
@@ -227,6 +225,7 @@ export const updatePlatformUserCurrencyEffect: Effects.EffectType<UpdatePlatform
 
             const existingUser = await platformLib.userDatabase.getUserByUsername(username, platform);
             if (!existingUser) {
+                const triggerUserId = extractTriggerUserId(event.trigger);
                 if (!triggerUserId) {
                     logger.error(`Update Platform User Currency: User not found and no trigger userId available: ${username}`);
                     return false;
