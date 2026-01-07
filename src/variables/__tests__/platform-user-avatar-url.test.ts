@@ -54,8 +54,8 @@ describe('platformUserAvatarUrl', () => {
 
         const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
         expect(twitchApi.users.getUserByName).toHaveBeenCalledWith('testuser');
@@ -76,8 +76,8 @@ describe('platformUserAvatarUrl', () => {
 
         const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
         expect(result).toBe('[No avatar found]');
@@ -179,7 +179,7 @@ describe('platformUserAvatarUrl', () => {
         const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
             {} as Trigger,
-            'testuser',
+            '@TestUser@Twitch',
             'twitch'
         );
 
@@ -199,8 +199,8 @@ describe('platformUserAvatarUrl', () => {
 
         const variable = createPlatformUserAvatarUrlVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
         expect(result).toBe('[No avatar found]');

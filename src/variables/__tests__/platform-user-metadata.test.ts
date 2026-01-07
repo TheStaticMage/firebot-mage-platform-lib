@@ -63,8 +63,8 @@ describe('platformUserMetadata', () => {
 
         const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser',
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch',
             'key'
         );
 
@@ -84,8 +84,8 @@ describe('platformUserMetadata', () => {
 
         const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser',
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch',
             'key',
             'default'
         );
@@ -212,7 +212,7 @@ describe('platformUserMetadata', () => {
         const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
             {} as Trigger,
-            'testuser',
+            '@TestUser@Twitch',
             'key',
             null,
             null,
@@ -235,8 +235,8 @@ describe('platformUserMetadata', () => {
 
         const variable = createPlatformUserMetadataVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser',
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch',
             'key',
             'default'
         );

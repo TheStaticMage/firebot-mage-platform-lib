@@ -52,10 +52,11 @@ describe('platformChatMessages', () => {
 
         const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe(42);
     });
 
@@ -71,10 +72,11 @@ describe('platformChatMessages', () => {
 
         const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe(0);
     });
 
@@ -163,10 +165,11 @@ describe('platformChatMessages', () => {
         const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
             {} as Trigger,
-            'testuser',
+            '@TestUser@Twitch',
             'twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe(99);
     });
 
@@ -182,10 +185,11 @@ describe('platformChatMessages', () => {
 
         const variable = createPlatformChatMessagesVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe(0);
     });
 });

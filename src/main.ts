@@ -10,6 +10,7 @@ export let platformLib: PlatformLibrary;
 
 interface ScriptParameters extends Record<string, unknown> {
     debug?: boolean;
+    overrideBuiltInVariables?: boolean;
 }
 
 const script: Firebot.CustomScript<ScriptParameters> = {
@@ -30,12 +31,19 @@ const script: Firebot.CustomScript<ScriptParameters> = {
                 title: 'Debug Mode',
                 default: false,
                 description: 'Enable debug logging'
+            },
+            overrideBuiltInVariables: {
+                type: 'boolean',
+                title: 'Override Built-In Variables [EXPERIMENTAL]',
+                default: false,
+                description: 'Override Firebot built-in platform variables with platform-aware logic. This is experimental and may cause issues with other scripts or integrations. Restart Firebot after changing this setting.'
             }
         };
     },
     run: async (runRequest: RunRequest<ScriptParameters>) => {
         firebot = runRequest;
         const debugMode = typeof runRequest.parameters?.debug === 'boolean' ? runRequest.parameters.debug : false;
+        const overrideBuiltIn = typeof runRequest.parameters?.overrideBuiltInVariables === 'boolean' ? runRequest.parameters.overrideBuiltInVariables : false;
         logger = new LogWrapper(runRequest.modules.logger, debugMode);
 
         // Check Firebot version requirement
@@ -48,7 +56,7 @@ const script: Firebot.CustomScript<ScriptParameters> = {
         logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initializing...`);
 
         // Initialize Platform Library
-        platformLib = new PlatformLibrary(logger, runRequest.modules, runRequest.scriptDataDir);
+        platformLib = new PlatformLibrary(logger, runRequest.modules, runRequest.scriptDataDir, overrideBuiltIn);
         await platformLib.initialize();
 
         // Startup scripts don't return anything - they just initialize

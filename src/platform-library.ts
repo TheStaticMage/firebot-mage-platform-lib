@@ -21,11 +21,18 @@ import { LogWrapper } from './main';
 import { PlatformDispatcher } from './platform-dispatcher';
 import { platformRestriction } from './restrictions/platform';
 import { registerRoutes, unregisterRoutes } from './server/server';
+import {
+    createChatMessagesOverride,
+    createCurrencyOverride,
+    createLastSeenOverride,
+    createUserAvatarUrlOverride,
+    createUserDisplayNameOverride,
+    createUserMetadataOverride
+} from './variables/override-variables';
 import { platformVariable } from './variables/platform';
 import { createPlatformAwareUserDisplayNameVariable } from './variables/platform-aware-user-display-name';
 import { createPlatformChatMessagesVariable } from './variables/platform-chat-messages';
 import { createPlatformCurrencyVariable } from './variables/platform-currency';
-import { createPlatformCurrencyByUserIdVariable } from './variables/platform-currency-by-user-id';
 import { createPlatformLastSeenVariable } from './variables/platform-last-seen';
 import { createPlatformUserAvatarUrlVariable } from './variables/platform-user-avatar-url';
 import { createPlatformUserMetadataVariable } from './variables/platform-user-metadata';
@@ -37,18 +44,20 @@ export class PlatformLibrary {
     private logger: LogWrapper;
     private modules: ScriptModules;
     private scriptDataDir: string;
+    private overrideBuiltIn: boolean;
     integrationDetector: IntegrationDetector;
     platformDispatcher: PlatformDispatcher;
     public userDatabase: PlatformUserDatabase;
     private criticalErrors: string[] = [];
     private showErrorModal: (title: string, message: string) => Promise<void>;
 
-    constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string) {
+    constructor(logger: LogWrapper, modules: ScriptModules, scriptDataDir: string, overrideBuiltIn = false) {
         this.logger = logger;
         this.modules = modules;
         this.scriptDataDir = scriptDataDir;
+        this.overrideBuiltIn = overrideBuiltIn;
 
-        this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}`);
+        this.logger.debug(`PlatformLibrary constructor: scriptDataDir=${scriptDataDir}, overrideBuiltIn=${overrideBuiltIn}`);
 
         // Create a placeholder showErrorModal function - will be properly set during initialize()
         this.showErrorModal = async () => {
@@ -310,6 +319,24 @@ export class PlatformLibrary {
             effectManager
         } = this.modules;
 
+        const shouldOverrideBuiltIn = this.overrideBuiltIn;
+
+        // Log warning if override is enabled
+        if (shouldOverrideBuiltIn) {
+            this.logger.warn('========================================');
+            this.logger.warn('VARIABLE OVERRIDE IS ENABLED');
+            this.logger.warn('This is an experimental feature.');
+            this.logger.warn('Expected: TypeError messages will appear in Firebot logs during startup.');
+            this.logger.warn('Built-in variables being overridden:');
+            this.logger.warn('  - userDisplayName');
+            this.logger.warn('  - userAvatarUrl (alias: userProfileImageUrl)');
+            this.logger.warn('  - currency');
+            this.logger.warn('  - chatMessages');
+            this.logger.warn('  - userMetadata');
+            this.logger.warn('  - lastSeen');
+            this.logger.warn('========================================');
+        }
+
         let successCount = 0;
         let failureCount = 0;
 
@@ -338,22 +365,6 @@ export class PlatformLibrary {
             const errorMsg = `Failed to register platform-aware user display name variable: ${error}`;
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform-aware user display name variable registration failed. ${error}`);
-            failureCount++;
-        }
-
-        // Register platform currency by user ID variable
-        try {
-            const platformCurrencyByUserIdVariable = createPlatformCurrencyByUserIdVariable(
-                this.userDatabase,
-                this.logger
-            );
-            replaceVariableManager.registerReplaceVariable(platformCurrencyByUserIdVariable);
-            this.logger.debug('Registered platform currency by user ID variable');
-            successCount++;
-        } catch (error) {
-            const errorMsg = `Failed to register platform currency by user ID variable: ${error}`;
-            this.logger.error(errorMsg);
-            this.criticalErrors.push(`Platform currency by user ID variable registration failed. ${error}`);
             failureCount++;
         }
 
@@ -435,6 +446,136 @@ export class PlatformLibrary {
             this.logger.error(errorMsg);
             this.criticalErrors.push(`Platform chat messages variable registration failed. ${error}`);
             failureCount++;
+        }
+
+        // Register override variables if enabled
+        if (shouldOverrideBuiltIn) {
+            // Unregister built-in variables and their aliases
+            this.logger.debug('Unregistering built-in variables for override...');
+
+            // Unregister userDisplayName
+            replaceVariableManager.unregisterReplaceVariable('userDisplayName');
+            this.logger.debug('Unregistered userDisplayName');
+
+            // Unregister userAvatarUrl and its alias userProfileImageUrl
+            replaceVariableManager.unregisterReplaceVariable('userAvatarUrl');
+            replaceVariableManager.unregisterReplaceVariable('userProfileImageUrl');
+            this.logger.debug('Unregistered userAvatarUrl and userProfileImageUrl');
+
+            // Unregister currency
+            replaceVariableManager.unregisterReplaceVariable('currency');
+            this.logger.debug('Unregistered currency');
+
+            // Unregister chatMessages
+            replaceVariableManager.unregisterReplaceVariable('chatMessages');
+            this.logger.debug('Unregistered chatMessages');
+
+            // Unregister userMetadata
+            replaceVariableManager.unregisterReplaceVariable('userMetadata');
+            this.logger.debug('Unregistered userMetadata');
+
+            // Unregister lastSeen
+            replaceVariableManager.unregisterReplaceVariable('lastSeen');
+            this.logger.debug('Unregistered lastSeen');
+
+            // Register override variables
+            this.logger.debug('Registering override variables...');
+
+            // Register userDisplayName override
+            try {
+                const userDisplayNameOverride = createUserDisplayNameOverride(
+                    this.userDatabase,
+                    this.logger
+                );
+                replaceVariableManager.registerReplaceVariable(userDisplayNameOverride);
+                this.logger.debug('Registered userDisplayName override');
+                successCount++;
+            } catch (error) {
+                const errorMsg = `Failed to register userDisplayName override: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(`UserDisplayName override registration failed. ${error}`);
+                failureCount++;
+            }
+
+            // Register userAvatarUrl override (with alias userProfileImageUrl)
+            try {
+                const userAvatarUrlOverride = createUserAvatarUrlOverride(
+                    this.userDatabase,
+                    this.logger
+                );
+                replaceVariableManager.registerReplaceVariable(userAvatarUrlOverride);
+                this.logger.debug('Registered userAvatarUrl override');
+                successCount++;
+            } catch (error) {
+                const errorMsg = `Failed to register userAvatarUrl override: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(`UserAvatarUrl override registration failed. ${error}`);
+                failureCount++;
+            }
+
+            // Register currency override
+            try {
+                const currencyOverride = createCurrencyOverride(
+                    this.userDatabase,
+                    this.logger
+                );
+                replaceVariableManager.registerReplaceVariable(currencyOverride);
+                this.logger.debug('Registered currency override');
+                successCount++;
+            } catch (error) {
+                const errorMsg = `Failed to register currency override: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(`Currency override registration failed. ${error}`);
+                failureCount++;
+            }
+
+            // Register chatMessages override
+            try {
+                const chatMessagesOverride = createChatMessagesOverride(
+                    this.userDatabase,
+                    this.logger
+                );
+                replaceVariableManager.registerReplaceVariable(chatMessagesOverride);
+                this.logger.debug('Registered chatMessages override');
+                successCount++;
+            } catch (error) {
+                const errorMsg = `Failed to register chatMessages override: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(`ChatMessages override registration failed. ${error}`);
+                failureCount++;
+            }
+
+            // Register userMetadata override
+            try {
+                const userMetadataOverride = createUserMetadataOverride(
+                    this.userDatabase,
+                    this.logger
+                );
+                replaceVariableManager.registerReplaceVariable(userMetadataOverride);
+                this.logger.debug('Registered userMetadata override');
+                successCount++;
+            } catch (error) {
+                const errorMsg = `Failed to register userMetadata override: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(`UserMetadata override registration failed. ${error}`);
+                failureCount++;
+            }
+
+            // Register lastSeen override
+            try {
+                const lastSeenOverride = createLastSeenOverride(
+                    this.userDatabase,
+                    this.logger
+                );
+                replaceVariableManager.registerReplaceVariable(lastSeenOverride);
+                this.logger.debug('Registered lastSeen override');
+                successCount++;
+            } catch (error) {
+                const errorMsg = `Failed to register lastSeen override: ${error}`;
+                this.logger.error(errorMsg);
+                this.criticalErrors.push(`LastSeen override registration failed. ${error}`);
+                failureCount++;
+            }
         }
 
         // Register filter

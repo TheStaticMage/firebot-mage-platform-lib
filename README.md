@@ -7,11 +7,12 @@ This is a [Firebot](https://firebot.app) plugin that provides centralized platfo
 - User database for non-Twitch users
 - Platform Variable (`$platform`) - Detects the platform from event context
 - Platform-Aware User Display Name Variable (`$platformAwareUserDisplayName`) - Resolve usernames across platforms
-- Platform Currency Variables (`$platformCurrency`, `$platformCurrencyByUserId`) - Read Kick and YouTube currency balances
+- Platform Currency Variable (`$platformCurrency`) - Read Kick and YouTube currency balances
 - Platform User Metadata Variable (`$platformUserMetadata`) - Get custom metadata
 - Platform User Avatar URL Variable (`$platformUserAvatarUrl`) - Get user avatar URLs
 - Platform Last Seen Variable (`$platformLastSeen`) - Get last seen date
 - Platform Chat Messages Variable (`$platformChatMessages`) - Get chat message count
+- [Override certain built-in Firebot variables](/doc/variable-override.md) - Option to make certain Firebot variables platform-aware (_EXPERIMENTAL_)
 - [Platform-Aware Chat Effect](/doc/effects/chat-platform.md) - Send messages to specific platforms or all platforms
 - Update Platform User Currency Effect - Update currency for Twitch, Kick, and YouTube users
 - Set Platform User Metadata Effect - Save metadata associated to a user on Twitch, Kick, or YouTube
@@ -27,6 +28,7 @@ Requires Firebot v5.65 or later.
 
 - [Installation](/doc/installation.md)
 - [Upgrading](/doc/upgrading.md)
+- [Variable Override](/doc/variable-override.md) - Experimental feature to override built-in Firebot variables
 - [Chat (Multi-Platform) effect](/doc/effects/chat-platform.md)
 
 ## Supported Platforms

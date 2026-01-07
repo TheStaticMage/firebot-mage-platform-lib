@@ -1,5 +1,4 @@
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
-import { createPlatformCurrencyByUserIdVariable } from '../platform-currency-by-user-id';
 import { createPlatformCurrencyVariable } from '../platform-currency';
 import { firebot } from '../../main';
 import type { LogWrapper } from '../../main';
@@ -31,118 +30,16 @@ describe('platform currency variables', () => {
         jest.clearAllMocks();
     });
 
-    describe('platformCurrencyByUserId', () => {
-        it('returns currency amount for Kick user', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn().mockReturnValue('kick'),
-                getUserCurrency: jest.fn().mockResolvedValue(42)
-            };
-            const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'k123', 'points');
-
-            expect(result).toBe(42);
-        });
-
-        it('returns 0 when inputs are missing', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn(),
-                getUserCurrency: jest.fn()
-            };
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, undefined, 'points');
-
-            expect(result).toBe(0);
-        });
-
-        it('returns currency amount for Twitch user ID', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn().mockReturnValue('twitch'),
-                getUserCurrency: jest.fn()
-            };
-            const currencyAccess = (firebot.modules as any).currencyAccess;
-            const currencyManagerNew = (firebot.modules as any).currencyManagerNew;
-            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
-            currencyManagerNew.getViewerCurrencies.mockResolvedValue({ points: 11 });
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, '123456789', 'points');
-
-            expect(result).toBe(11);
-            expect(currencyManagerNew.getViewerCurrencies).toHaveBeenCalledWith('123456789', false);
-        });
-
-        it('returns 0 when platform is unknown', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn().mockReturnValue('unknown'),
-                getUserCurrency: jest.fn()
-            };
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'k123', 'points');
-
-            expect(result).toBe(0);
-        });
-
-        it('falls back to currency name lookup', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn().mockReturnValue('kick'),
-                getUserCurrency: jest.fn().mockResolvedValue(7)
-            };
-            const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue(null);
-            currencyAccess.getCurrencyByName.mockReturnValue({ id: 'points' });
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'k123', 'Points');
-
-            expect(result).toBe(7);
-        });
-
-        it('returns 0 when currency is not found', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn().mockReturnValue('kick'),
-                getUserCurrency: jest.fn()
-            };
-            const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue(null);
-            currencyAccess.getCurrencyByName.mockReturnValue(null);
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'k123', 'Points');
-
-            expect(result).toBe(0);
-        });
-
-        it('returns 0 when user ID is invalid', async () => {
-            const userDatabase = {
-                detectPlatform: jest.fn().mockReturnValue('kick'),
-                getUserCurrency: jest.fn().mockRejectedValue(new Error('User ID must be platform-prefixed'))
-            };
-            const currencyAccess = (firebot.modules as any).currencyAccess;
-            currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
-
-            const variable = createPlatformCurrencyByUserIdVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, '123', 'points');
-
-            expect(result).toBe(0);
-        });
-    });
-
     describe('platformCurrency', () => {
         it('returns 0 when inputs are missing', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn(),
                 getUserByUsername: jest.fn(),
                 getUserCurrency: jest.fn()
             };
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, undefined, 'points', 'kick');
+            const result = await variable.evaluator({} as Trigger, 'points', undefined, 'kick');
 
             expect(result).toBe(0);
         });
@@ -150,7 +47,6 @@ describe('platform currency variables', () => {
         it('returns currency amount for a user by username', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn().mockReturnValue('user'),
                 getUserByUsername: jest.fn().mockResolvedValue({ _id: 'k123' }),
                 getUserCurrency: jest.fn().mockResolvedValue(15)
             };
@@ -158,7 +54,7 @@ describe('platform currency variables', () => {
             currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');
+            const result = await variable.evaluator({} as Trigger, 'points', 'User', 'kick');
 
             expect(result).toBe(15);
         });
@@ -166,7 +62,6 @@ describe('platform currency variables', () => {
         it('returns 0 when user is not found', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn().mockReturnValue('user'),
                 getUserByUsername: jest.fn().mockResolvedValue(null),
                 getUserCurrency: jest.fn()
             };
@@ -174,7 +69,7 @@ describe('platform currency variables', () => {
             currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');
+            const result = await variable.evaluator({} as Trigger, 'points', 'User', 'kick');
 
             expect(result).toBe(0);
         });
@@ -182,7 +77,6 @@ describe('platform currency variables', () => {
         it('returns 0 when currency is not found', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn().mockReturnValue('user'),
                 getUserByUsername: jest.fn().mockResolvedValue({ _id: 'k123' }),
                 getUserCurrency: jest.fn()
             };
@@ -191,7 +85,7 @@ describe('platform currency variables', () => {
             currencyAccess.getCurrencyByName.mockReturnValue(null);
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');
+            const result = await variable.evaluator({} as Trigger, 'points', 'User', 'kick');
 
             expect(result).toBe(0);
         });
@@ -199,7 +93,6 @@ describe('platform currency variables', () => {
         it('auto-detects platform when not provided', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn().mockReturnValue('youtube'),
-                normalizeUsername: jest.fn().mockReturnValue('user'),
                 getUserByUsername: jest.fn().mockResolvedValue({ _id: 'yUC123' }),
                 getUserCurrency: jest.fn().mockResolvedValue(3)
             };
@@ -207,7 +100,7 @@ describe('platform currency variables', () => {
             currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User@YouTube', 'points');
+            const result = await variable.evaluator({} as Trigger, 'points', 'User@YouTube');
 
             expect(result).toBe(3);
         });
@@ -215,9 +108,6 @@ describe('platform currency variables', () => {
         it('returns 0 when normalizeUsername throws', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn(() => {
-                    throw new Error('bad username');
-                }),
                 getUserByUsername: jest.fn(),
                 getUserCurrency: jest.fn()
             };
@@ -225,7 +115,7 @@ describe('platform currency variables', () => {
             currencyAccess.getCurrencyById.mockReturnValue({ id: 'points' });
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'kick');
+            const result = await variable.evaluator({} as Trigger, 'points', '@kick', 'kick');
 
             expect(result).toBe(0);
         });
@@ -233,7 +123,6 @@ describe('platform currency variables', () => {
         it('returns currency amount for Twitch user', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn(),
                 getUserByUsername: jest.fn(),
                 getUserCurrency: jest.fn()
             };
@@ -243,22 +132,21 @@ describe('platform currency variables', () => {
             currencyManagerNew.getViewerCurrencyAmount.mockResolvedValue(24);
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'TestUser', 'points', 'twitch');
+            const result = await variable.evaluator({} as Trigger, 'points', 'TestUser', 'twitch');
 
             expect(result).toBe(24);
-            expect(currencyManagerNew.getViewerCurrencyAmount).toHaveBeenCalledWith('TestUser', 'points');
+            expect(currencyManagerNew.getViewerCurrencyAmount).toHaveBeenCalledWith('testuser', 'points');
         });
 
         it('returns 0 for unsupported platform', async () => {
             const userDatabase = {
                 detectPlatform: jest.fn(),
-                normalizeUsername: jest.fn(),
                 getUserByUsername: jest.fn(),
                 getUserCurrency: jest.fn()
             };
 
             const variable = createPlatformCurrencyVariable(userDatabase as any, logger);
-            const result = await variable.evaluator({} as Trigger, 'User', 'points', 'facebook');
+            const result = await variable.evaluator({} as Trigger, 'points', 'User', 'facebook');
 
             expect(result).toBe(0);
         });

@@ -5,7 +5,7 @@ import path from 'path';
 import { firebot, LogWrapper } from '../main';
 import type { PlatformUser } from '../types/platform-user';
 import { parseData } from './json-data-helpers';
-import { detectPlatformFromInputs } from './trigger-helpers';
+import { detectPlatformFromInputs, normalizeUsername } from './trigger-helpers';
 
 export interface MigrationConflict {
     type: 'id' | 'username';
@@ -139,32 +139,6 @@ export class PlatformUserDatabase {
         throw new Error(`User ID must be platform-prefixed (k for Kick, y for YouTube): ${trimmedUserId}`);
     }
 
-    /**
-     * Normalize a username by stripping platform suffixes and leading @.
-     * @param username Raw username input.
-     * @returns Normalized username.
-     * @throws Error when normalization results in empty value.
-     */
-    normalizeUsername(username: string): string {
-        let normalized = username.toLowerCase();
-
-        if (normalized.endsWith('@kick')) {
-            normalized = normalized.slice(0, -5);
-        } else if (normalized.endsWith('@youtube')) {
-            normalized = normalized.slice(0, -8);
-        }
-
-        if (normalized.startsWith('@')) {
-            normalized = normalized.slice(1);
-        }
-
-        if (normalized.trim() === '') {
-            throw new Error(`Username normalizes to empty string: "${username}"`);
-        }
-
-        return normalized;
-    }
-
     private ensurePlatformPrefixForMigration(platform: string, userId: string): string {
         this.validatePlatform(platform);
 
@@ -251,7 +225,7 @@ export class PlatformUserDatabase {
             this.validatePlatform(targetPlatform);
 
             const db = this.ensureDb();
-            const normalizedUsername = this.normalizeUsername(username);
+            const normalizedUsername = normalizeUsername(username);
             const platformPrefix = targetPlatform === 'kick' ? 'k' : 'y';
             const user = await db.findOneAsync({
                 username: normalizedUsername,
@@ -283,7 +257,7 @@ export class PlatformUserDatabase {
         this.validatePlatform(platform);
         const db = this.ensureDb();
         const normalizedUserId = this.validateUserId(userId);
-        const normalizedUsername = this.normalizeUsername(username);
+        const normalizedUsername = normalizeUsername(username);
 
         const existingUser = await db.findOneAsync({ _id: normalizedUserId });
         if (existingUser) {
@@ -717,7 +691,7 @@ export class PlatformUserDatabase {
                 }
 
                 const prefixedId = this.ensurePlatformPrefixForMigration('kick', rawId);
-                const normalizedUsername = this.normalizeUsername(rawUsername);
+                const normalizedUsername = normalizeUsername(rawUsername);
 
                 const existingById = await db.findOneAsync({ _id: prefixedId });
                 if (existingById) {

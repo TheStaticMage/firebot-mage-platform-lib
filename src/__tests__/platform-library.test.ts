@@ -1,9 +1,9 @@
 import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
-import { PLATFORM_LIB_VERSION, createPlatformLibVersionInfo } from '@thestaticmage/mage-platform-lib-client';
 import * as startupScriptsModule from '@thestaticmage/mage-platform-lib-client';
+import { PLATFORM_LIB_VERSION, createPlatformLibVersionInfo } from '@thestaticmage/mage-platform-lib-client';
 import fs from 'fs';
-import { PlatformLibrary } from '../platform-library';
 import { LogWrapper } from '../main';
+import { PlatformLibrary } from '../platform-library';
 
 const mockUserDatabase = {
     initialize: jest.fn().mockResolvedValue(undefined),
@@ -152,8 +152,8 @@ describe('PlatformLibrary', () => {
             await jest.runAllTimersAsync();
             await initPromise;
 
-            // Should register 8 variables
-            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(8);
+            // Should register 7 variables
+            expect(mockModules.replaceVariableManager.registerReplaceVariable).toHaveBeenCalledTimes(7);
             // Should register 1 filter
             expect(mockModules.eventFilterManager.registerFilter).toHaveBeenCalledTimes(1);
             // Should register 1 condition (platform)
@@ -181,7 +181,6 @@ describe('PlatformLibrary', () => {
             // Should log the registration errors
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform variable'));
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform-aware user display name variable'));
-            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform currency by user ID variable'));
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to register platform currency variable'));
 
             // Should log error about failures

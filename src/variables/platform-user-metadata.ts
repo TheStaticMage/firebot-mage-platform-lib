@@ -2,7 +2,7 @@ import type { ReplaceVariable } from '@crowbartools/firebot-custom-scripts-types
 import type { Trigger } from '@crowbartools/firebot-custom-scripts-types/types/triggers';
 import { firebot, LogWrapper } from '../main';
 import { PlatformUserDatabase } from '../internal/platform-user-database';
-import { determineTargetPlatform } from '../internal/trigger-helpers';
+import { determineTargetPlatform, normalizeUsername } from '../internal/trigger-helpers';
 
 /**
  * Creates a platform-aware user metadata variable
@@ -65,10 +65,11 @@ export function createPlatformUserMetadataVariable(
                 // Twitch: use Firebot's viewer metadata manager
                 if (targetPlatform === 'twitch') {
                     logger.debug(`platformUserMetadata: Getting Twitch metadata for ${username}, key: ${key}`);
+                    const normalizedTwitchUsername = normalizeUsername(username);
                     const viewerMetadataManager = firebot.modules.viewerMetadataManager as {
                         getViewerMetadata: (username: string, key: string, propertyPath: string | null) => Promise<unknown>;
                     };
-                    const data = await viewerMetadataManager.getViewerMetadata(username, key, propertyPath);
+                    const data = await viewerMetadataManager.getViewerMetadata(normalizedTwitchUsername, key, propertyPath);
                     if (data == null) {
                         return defaultValue;
                     }
@@ -78,7 +79,7 @@ export function createPlatformUserMetadataVariable(
                 // Kick/YouTube: use platform user database metadata if available
                 if (targetPlatform === 'kick' || targetPlatform === 'youtube') {
                     logger.debug(`platformUserMetadata: Getting ${targetPlatform} metadata for ${username}, key: ${key}`);
-                    const normalizedUsername = userDatabase.normalizeUsername(username);
+                    const normalizedUsername = normalizeUsername(username);
                     const user = await userDatabase.getUserByUsername(normalizedUsername, targetPlatform);
 
                     if (!user) {

@@ -52,10 +52,11 @@ describe('platformLastSeen', () => {
 
         const variable = createPlatformLastSeenVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe('2021-01-01');
     });
 
@@ -71,10 +72,11 @@ describe('platformLastSeen', () => {
 
         const variable = createPlatformLastSeenVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe('Unknown User');
     });
 
@@ -163,10 +165,11 @@ describe('platformLastSeen', () => {
         const variable = createPlatformLastSeenVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
             {} as Trigger,
-            'testuser',
+            '@TestUser@Twitch',
             'twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe('2021-01-01');
     });
 
@@ -182,10 +185,11 @@ describe('platformLastSeen', () => {
 
         const variable = createPlatformLastSeenVariable(userDatabase as any, logger);
         const result = await variable.evaluator(
-            { metadata: { username: 'testuser' } } as Trigger,
-            'testuser'
+            { metadata: { username: '@TestUser@Twitch' } } as Trigger,
+            '@TestUser@Twitch'
         );
 
+        expect(viewerDatabase.getViewerByUsername).toHaveBeenCalledWith('testuser');
         expect(result).toBe('Unknown User');
     });
 });
