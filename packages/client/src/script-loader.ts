@@ -28,56 +28,52 @@ export function loadScriptVersion(
     scriptName: string,
     scriptDataDir: string | undefined,
     debugLogger?: { debug: (msg: string) => void }
-): string | undefined {
+): string {
     if (!scriptDataDir) {
-        return undefined;
+        throw new Error("scriptDataDir is required to load script version");
     }
 
-    try {
-        // Construct full script path from scriptDataDir
-        // scriptDataDir is at {profile}/script-data/{script-name}/
-        // scripts folder is at {profile}/scripts/
-        const scriptsFolder = path.resolve(scriptDataDir, "../../scripts");
-        const scriptPath = path.join(scriptsFolder, scriptName);
+    // Construct full script path from scriptDataDir
+    // scriptDataDir is at {profile}/script-data/{script-name}/
+    // scripts folder is at {profile}/scripts/
+    const scriptsFolder = path.resolve(scriptDataDir, "../../scripts");
+    const scriptPath = path.join(scriptsFolder, scriptName);
 
-        debugLogger?.debug(
-            `Script path resolution: scriptDataDir=${scriptDataDir}, scriptsFolder=${scriptsFolder}, scriptPath=${scriptPath}`
-        );
+    debugLogger?.debug(
+        `Script path resolution: scriptDataDir=${scriptDataDir}, scriptsFolder=${scriptsFolder}, scriptPath=${scriptPath}`
+    );
 
-        // For bundled webpack scripts, read the file and eval it to get the actual exports
-        if (fs.existsSync(scriptPath) && fs.readFileSync) {
-            const fileContent = fs.readFileSync(scriptPath, "utf8");
+    // For bundled webpack scripts, read the file and eval it to get the actual exports
+    if (!fs.existsSync(scriptPath)) {
+        throw new Error(`Script not found at path: ${scriptPath}`);
+    }
 
-            // Create a context object to capture the module exports
-            const moduleContext = { exports: {} };
+    const fileContent = fs.readFileSync(scriptPath, "utf8");
 
-            // Execute the bundled code with access to the module context
-            // The bundled webpack code will populate module.exports with the script's exports
-            // eslint-disable-next-line no-eval
-            eval(`(function(module) { ${fileContent} })(moduleContext);`);
+    // Create a context object to capture the module exports
+    const moduleContext = { exports: {} };
 
-            // Try to get the manifest from the evaluated module exports
-            const evaledModule = moduleContext.exports as any;
-            if (
-                evaledModule &&
-				typeof evaledModule.getScriptManifest === "function"
-            ) {
-                const manifest = evaledModule.getScriptManifest();
-                if (manifest && typeof manifest === "object" && manifest.version) {
-                    debugLogger?.debug(
-                        `Extracted version from eval'd script: ${manifest.version}`
-                    );
-                    return manifest.version;
-                }
-            }
+    // Execute the bundled code with access to the module context
+    // The bundled webpack code will populate module.exports with the script's exports
+    // eslint-disable-next-line no-eval
+    eval(`(function(module) { ${fileContent} })(moduleContext);`);
+
+    // Try to get the manifest from the evaluated module exports
+    const evaledModule = moduleContext.exports as any;
+    if (
+        evaledModule &&
+        typeof evaledModule.getScriptManifest === "function"
+    ) {
+        const manifest = evaledModule.getScriptManifest();
+        if (manifest && typeof manifest === "object" && manifest.version) {
+            debugLogger?.debug(
+                `Extracted version from eval'd script: ${manifest.version}`
+            );
+            return manifest.version;
         }
 
-        // If no version found, return undefined
-        return undefined;
-    } catch (error) {
-        debugLogger?.debug(
-            `Failed to load script manifest for ${scriptName}: ${error}`
-        );
-        return undefined;
+        throw new Error(`getScriptManifest() did not return a valid manifest with version for script: ${scriptName}`);
     }
+
+    throw new Error(`Could not get evaledModule.getScriptManifest for script: ${scriptName}`);
 }
