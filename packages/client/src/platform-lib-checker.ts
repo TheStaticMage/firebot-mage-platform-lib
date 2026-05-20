@@ -47,12 +47,23 @@ export async function checkPlatformLibCompatibility(
         }
 
         logger.debug(`Found platform-lib: ${platformLib.name} in script: ${platformLib.scriptName}`);
-        const version = loadScriptVersion(platformLib.scriptName, scriptDataDir, logger);
+
+        let version = "";
+        try {
+            version = loadScriptVersion(platformLib.scriptName, scriptDataDir, logger);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.error(`Error loading platform-lib version: ${errorMessage}`);
+            return {
+                success: false,
+                errorMessage: `Error loading Platform Library version: ${errorMessage}`
+            };
+        }
 
         if (!version) {
             return {
                 success: false,
-                errorMessage: `Platform Library version could not be determined. Please install https://github.com/TheStaticMage/firebot-mage-platform-lib before using ${integrationName}.`
+                errorMessage: `Version information not found in Platform Library script. Please ensure you have a compatible version of https://github.com/TheStaticMage/firebot-mage-platform-lib before using ${integrationName}.`
             };
         }
 
