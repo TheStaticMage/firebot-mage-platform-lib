@@ -47,7 +47,7 @@ export async function checkPlatformLibCompatibility(
         }
 
         logger.debug(`Found platform-lib: ${platformLib.name} in script: ${platformLib.scriptName}`);
-        const version = loadScriptVersion(platformLib.scriptName, scriptDataDir, modules, logger);
+        const version = loadScriptVersion(platformLib.scriptName, scriptDataDir, logger);
 
         if (!version) {
             return {

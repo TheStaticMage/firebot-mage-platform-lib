@@ -1,7 +1,7 @@
 /**
  * Platform Library Version
  */
-export const PLATFORM_LIB_VERSION = "0.0.4";
+export const PLATFORM_LIB_VERSION = "0.0.5";
 
 /**
  * Platform Library version information
