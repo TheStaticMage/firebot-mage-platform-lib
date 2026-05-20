@@ -1,9 +1,9 @@
-import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
-import {
+import type { ScriptModules } from "@crowbartools/firebot-custom-scripts-types/types";
+import type {
     SendChatMessageRequest,
     SendChatMessageResponse
-} from '@thestaticmage/mage-platform-lib-client';
-import { LogWrapper } from '../main';
+} from "@thestaticmage/mage-platform-lib-client";
+import type { LogWrapper } from "../main";
 
 /**
  * Handles Twitch-specific operations like chat messages and user display names
@@ -18,19 +18,20 @@ export class TwitchOperationHandler {
     }
 
     /**
-     * Sends a chat message to Twitch
-     */
-    async sendChatMessage(request: SendChatMessageRequest): Promise<SendChatMessageResponse> {
+	 * Sends a chat message to Twitch
+	 */
+    async sendChatMessage(
+        request: SendChatMessageRequest
+    ): Promise<SendChatMessageResponse> {
         try {
-            const { twitchChat } = this.modules;
+            const { twitchApi } = this.modules;
 
-            if (request.replyId) {
-                await twitchChat.sendChatMessage(request.message, undefined, undefined, request.replyId);
-            } else {
-                await twitchChat.sendChatMessage(request.message);
-            }
+            await twitchApi.chat.sendChatMessage(
+                request.message,
+                request.replyId ?? undefined
+            );
 
-            this.logger.debug('Twitch chat message sent successfully');
+            this.logger.debug("Twitch chat message sent successfully");
             return { success: true };
         } catch (error) {
             this.logger.error(`Failed to send Twitch chat message: ${error}`);

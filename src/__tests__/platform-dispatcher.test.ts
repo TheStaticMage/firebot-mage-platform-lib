@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { PlatformDispatcher } from '../platform-dispatcher';
-import { IntegrationDetector } from '../integration-detector';
-import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
-import { LogWrapper } from '../main';
-import {
-    SendChatMessageRequest
-} from '@thestaticmage/mage-platform-lib-client';
 
-jest.mock('../http-client/client');
+import type { ScriptModules } from "@crowbartools/firebot-custom-scripts-types/types";
+import type { SendChatMessageRequest } from "@thestaticmage/mage-platform-lib-client";
+import type { IntegrationDetector } from "../integration-detector";
+import type { LogWrapper } from "../main";
+import { PlatformDispatcher } from "../platform-dispatcher";
 
-describe('PlatformDispatcher', () => {
+jest.mock("../http-client/client");
+
+describe("PlatformDispatcher", () => {
     let dispatcher: PlatformDispatcher;
     let mockIntegrationDetector: IntegrationDetector;
     let mockModules: ScriptModules;
@@ -31,8 +30,10 @@ describe('PlatformDispatcher', () => {
         } as unknown as IntegrationDetector;
 
         mockModules = {
-            twitchChat: {
-                sendChatMessage: jest.fn()
+            twitchApi: {
+                chat: {
+                    sendChatMessage: jest.fn()
+                }
             },
             userDb: {
                 getTwitchUserByUsername: jest.fn()
@@ -49,90 +50,119 @@ describe('PlatformDispatcher', () => {
         );
     });
 
-    describe('dispatchOperation', () => {
-        it('should route to Twitch for twitch platform', async () => {
-            const request: SendChatMessageRequest = { message: 'Hello' };
+    describe("dispatchOperation", () => {
+        it("should route to Twitch for twitch platform", async () => {
+            const request: SendChatMessageRequest = { message: "Hello" };
 
-            await dispatcher.dispatchOperation('send-chat-message', 'twitch', request);
+            await dispatcher.dispatchOperation(
+                "send-chat-message",
+                "twitch",
+                request
+            );
 
-            expect(mockModules.twitchChat.sendChatMessage).toHaveBeenCalledWith('Hello');
+            expect(mockModules.twitchApi.chat.sendChatMessage).toHaveBeenCalledWith(
+                "Hello",
+                undefined
+            );
         });
 
-        it('should route to integration for non-twitch platform via HTTP', async () => {
-            const request: SendChatMessageRequest = { message: 'Hello Kick' };
+        it("should route to integration for non-twitch platform via HTTP", async () => {
+            const request: SendChatMessageRequest = { message: "Hello Kick" };
 
-            (mockIntegrationDetector.isIntegrationDetected as jest.Mock).mockReturnValue(true);
-            (mockIntegrationDetector.getDetectedIntegrationInfo as jest.Mock).mockReturnValue({
-                scriptName: 'Kick Integration',
-                version: '0.6.2'
+            (
+                mockIntegrationDetector.isIntegrationDetected as jest.Mock
+            ).mockReturnValue(true);
+            (
+                mockIntegrationDetector.getDetectedIntegrationInfo as jest.Mock
+            ).mockReturnValue({
+                scriptName: "Kick Integration",
+                version: "0.6.2"
             });
 
             // The actual HTTP call will be made via the HttpClient
             // We just verify the integration detector is checked
             try {
-                await dispatcher.dispatchOperation('send-chat-message', 'kick', request);
+                await dispatcher.dispatchOperation(
+                    "send-chat-message",
+                    "kick",
+                    request
+                );
             } catch {
                 // Expected to fail due to mocked HttpClient not being properly configured
                 // but we've verified integration detection works
             }
 
-            expect(mockIntegrationDetector.isIntegrationDetected).toHaveBeenCalledWith('kick');
+            expect(
+                mockIntegrationDetector.isIntegrationDetected
+            ).toHaveBeenCalledWith("kick");
         });
     });
 
-    describe('dispatchToTwitch', () => {
-        describe('send-chat-message', () => {
-            it('should send chat message without reply', async () => {
-                const request: SendChatMessageRequest = { message: 'Test message' };
+    describe("dispatchToTwitch", () => {
+        describe("send-chat-message", () => {
+            it("should send chat message without reply", async () => {
+                const request: SendChatMessageRequest = { message: "Test message" };
 
-                const result = await dispatcher.dispatchToTwitch('send-chat-message', request);
+                const result = await dispatcher.dispatchToTwitch(
+                    "send-chat-message",
+                    request
+                );
 
-                expect(mockModules.twitchChat.sendChatMessage).toHaveBeenCalledWith('Test message');
+                expect(mockModules.twitchApi.chat.sendChatMessage).toHaveBeenCalledWith(
+                    "Test message",
+                    undefined
+                );
                 expect(result).toEqual({ success: true });
             });
 
-            it('should send chat message with reply', async () => {
+            it("should send chat message with reply", async () => {
                 const request: SendChatMessageRequest = {
-                    message: 'Reply message',
-                    replyId: 'msg-123'
+                    message: "Reply message",
+                    replyId: "msg-123"
                 };
 
-                const result = await dispatcher.dispatchToTwitch('send-chat-message', request);
+                const result = await dispatcher.dispatchToTwitch(
+                    "send-chat-message",
+                    request
+                );
 
-                expect(mockModules.twitchChat.sendChatMessage).toHaveBeenCalledWith(
-                    'Reply message',
-                    undefined,
-                    undefined,
-                    'msg-123'
+                expect(mockModules.twitchApi.chat.sendChatMessage).toHaveBeenCalledWith(
+                    "Reply message",
+                    "msg-123"
                 );
                 expect(result).toEqual({ success: true });
             });
 
-            it('should handle send errors', async () => {
-                const request: SendChatMessageRequest = { message: 'Test' };
-                (mockModules.twitchChat.sendChatMessage as jest.Mock).mockRejectedValue(
-                    new Error('Send failed')
+            it("should handle send errors", async () => {
+                const request: SendChatMessageRequest = { message: "Test" };
+                (
+                    mockModules.twitchApi.chat.sendChatMessage as jest.Mock
+                ).mockRejectedValue(new Error("Send failed"));
+
+                const result = await dispatcher.dispatchToTwitch(
+                    "send-chat-message",
+                    request
                 );
 
-                const result = await dispatcher.dispatchToTwitch('send-chat-message', request);
-
-                expect(result).toEqual({ success: false, error: 'Send failed' });
+                expect(result).toEqual({ success: false, error: "Send failed" });
             });
         });
 
-        it('should throw error for unsupported operation', async () => {
+        it("should throw error for unsupported operation", async () => {
             await expect(
-                dispatcher.dispatchToTwitch('unsupported-op' as never, {})
-            ).rejects.toThrow('Unsupported Twitch operation');
+                dispatcher.dispatchToTwitch("unsupported-op" as never, {})
+            ).rejects.toThrow("Unsupported Twitch operation");
         });
     });
 
-    describe('dispatchToIntegration', () => {
-        it('should throw error if integration not detected', async () => {
-            (mockIntegrationDetector.isIntegrationDetected as jest.Mock).mockReturnValue(false);
+    describe("dispatchToIntegration", () => {
+        it("should throw error if integration not detected", async () => {
+            (
+                mockIntegrationDetector.isIntegrationDetected as jest.Mock
+            ).mockReturnValue(false);
 
             await expect(
-                dispatcher.dispatchToIntegration('kick', 'send-chat-message', {})
+                dispatcher.dispatchToIntegration("kick", "send-chat-message", {})
             ).rejects.toThrow('Integration for platform "kick" is not installed');
         });
     });
