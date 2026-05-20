@@ -1,4 +1,5 @@
-import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 /**
  * Loads a script's manifest and extracts version information from bundled integration scripts.
@@ -20,37 +21,32 @@ import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types'
  *
  * @param scriptName Name of the script file to load
  * @param scriptDataDir Path to the script data directory (typically from RunRequest.scriptDataDir)
- * @param modules ScriptModules from RunRequest
  * @param debugLogger Optional logger for debug output
  * @returns Version string or undefined if not found
  */
 export function loadScriptVersion(
     scriptName: string,
     scriptDataDir: string | undefined,
-    modules: ScriptModules | undefined,
     debugLogger?: { debug: (msg: string) => void }
 ): string | undefined {
-    if (!scriptDataDir || !modules?.path || !modules?.fs) {
+    if (!scriptDataDir) {
         return undefined;
     }
 
     try {
-        const pathModule = modules.path;
-        const fsModule = modules.fs;
-
         // Construct full script path from scriptDataDir
         // scriptDataDir is at {profile}/script-data/{script-name}/
         // scripts folder is at {profile}/scripts/
-        const scriptsFolder = pathModule.resolve(scriptDataDir, '../../scripts');
-        const scriptPath = pathModule.join(scriptsFolder, scriptName);
+        const scriptsFolder = path.resolve(scriptDataDir, "../../scripts");
+        const scriptPath = path.join(scriptsFolder, scriptName);
 
         debugLogger?.debug(
             `Script path resolution: scriptDataDir=${scriptDataDir}, scriptsFolder=${scriptsFolder}, scriptPath=${scriptPath}`
         );
 
         // For bundled webpack scripts, read the file and eval it to get the actual exports
-        if (fsModule.existsSync(scriptPath) && fsModule.readFileSync) {
-            const fileContent = fsModule.readFileSync(scriptPath, 'utf8');
+        if (fs.existsSync(scriptPath) && fs.readFileSync) {
+            const fileContent = fs.readFileSync(scriptPath, "utf8");
 
             // Create a context object to capture the module exports
             const moduleContext = { exports: {} };
@@ -62,10 +58,15 @@ export function loadScriptVersion(
 
             // Try to get the manifest from the evaluated module exports
             const evaledModule = moduleContext.exports as any;
-            if (evaledModule && typeof evaledModule.getScriptManifest === 'function') {
+            if (
+                evaledModule &&
+				typeof evaledModule.getScriptManifest === "function"
+            ) {
                 const manifest = evaledModule.getScriptManifest();
-                if (manifest && typeof manifest === 'object' && manifest.version) {
-                    debugLogger?.debug(`Extracted version from eval'd script: ${manifest.version}`);
+                if (manifest && typeof manifest === "object" && manifest.version) {
+                    debugLogger?.debug(
+                        `Extracted version from eval'd script: ${manifest.version}`
+                    );
                     return manifest.version;
                 }
             }
@@ -74,7 +75,9 @@ export function loadScriptVersion(
         // If no version found, return undefined
         return undefined;
     } catch (error) {
-        debugLogger?.debug(`Failed to load script manifest for ${scriptName}: ${error}`);
+        debugLogger?.debug(
+            `Failed to load script manifest for ${scriptName}: ${error}`
+        );
         return undefined;
     }
 }

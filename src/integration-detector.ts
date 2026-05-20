@@ -1,7 +1,7 @@
-import { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
-import { checkVersionCompatibility, VersionCheckResult, loadScriptVersion, getStartupScripts, ScriptManifest } from '@thestaticmage/mage-platform-lib-client';
+import type { ScriptModules } from '@crowbartools/firebot-custom-scripts-types/types';
+import { checkVersionCompatibility, getStartupScripts, loadScriptVersion, type ScriptManifest, type VersionCheckResult } from '@thestaticmage/mage-platform-lib-client';
 import { KNOWN_INTEGRATIONS } from './constants';
-import { LogWrapper } from './main';
+import type { LogWrapper } from './main';
 
 /**
  * Detected integration metadata
@@ -178,7 +178,7 @@ export class IntegrationDetector {
      * @returns Version string or undefined if not found
      */
     private loadScriptVersion(scriptName: string): string | undefined {
-        return loadScriptVersion(scriptName, this.scriptDataDir, this.modules, this.logger);
+        return loadScriptVersion(scriptName, this.scriptDataDir, this.logger);
     }
 
     /**
