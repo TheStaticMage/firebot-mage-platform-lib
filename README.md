@@ -1,5 +1,7 @@
 # Firebot Multi-Platform Support Library
 
+> :warning: **Archive Notice**: This plugin is not compatible with backend infrastructure changes in Firebot 5.67 and higher. The plugin will no longer be updated.
+
 This is a [Firebot](https://firebot.app) plugin that provides centralized platform-aware functionality for multi-platform streaming integrations. The Platform Library enables seamless cross-platform communication and feature management for Twitch, Kick, and YouTube.
 
 ## Features
@@ -24,7 +26,7 @@ This is a [Firebot](https://firebot.app) plugin that provides centralized platfo
 
 ## Documentation
 
-Requires Firebot v5.65 or later.
+Requires Firebot 5.65 or 5.66.
 
 - [Installation](/doc/installation.md)
 - [Upgrading](/doc/upgrading.md)
@@ -41,18 +43,14 @@ Requires Firebot v5.65 or later.
 
 :bulb: This library adds _no useful functionality_ without at least one of the non-Twitch integrations noted above.
 
-## Support
+## Archive Notice
 
-The best way to get help is in my Discord server. Join [The Static Discord](https://discord.gg/EnP6JCJQ6n) and visit the `#firebot-mage-platform-lib` channel.
+This plugin is not compatible with Firebot 5.67 and higher due to backend infrastructure changes. The plugin will no longer be updated.
 
-- Please do not DM me on Discord.
-- Please do not ask for help in my chat when I am streaming.
+If you are running Firebot 5.67 or higher, this plugin may not work correctly. Your options are:
 
-Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/TheStaticMage/firebot-mage-platform-lib/issues).
-
-## Contributing
-
-Contributions are welcome via [Pull Requests](https://github.com/TheStaticMage/firebot-mage-platform-lib/pulls). I _strongly suggest_ that you contact me before making significant changes. Please refer to the [Contribution Guidelines](/.github/contributing.md) for specifics.
+1. Downgrade to Firebot 5.66. Be sure to disable automatic upgrades and manually install the latest Firebot 5.66 release. Note that you will not get new Firebot features and will no longer receive support from official Firebot channels.
+2. Uninstall this plugin.
 
 ## License
 
