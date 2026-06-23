@@ -2,6 +2,7 @@
 
 | Plugin Version | Minimum Firebot Version |
 | --- | --- |
+| INCOMPATIBLE | Firebot 5.67+ |
 | 0.0.5+ | 5.65 or 5.66 |
 | 0.0.1 - 0.0.4 | 5.65 only |
 

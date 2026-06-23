@@ -1,8 +1,14 @@
-import { Firebot, RunRequest } from '@crowbartools/firebot-custom-scripts-types';
-import { Logger } from '@crowbartools/firebot-custom-scripts-types/types/modules/logger';
-import { PLATFORM_LIB_VERSION, checkSemanticVersion } from '@thestaticmage/mage-platform-lib-client';
-import { IntegrationConstants } from './constants';
-import { PlatformLibrary } from './platform-library';
+import type {
+    Firebot,
+    RunRequest
+} from "@crowbartools/firebot-custom-scripts-types";
+import type { Logger } from "@crowbartools/firebot-custom-scripts-types/types/modules/logger";
+import {
+    checkSemanticVersion,
+    PLATFORM_LIB_VERSION
+} from "@thestaticmage/mage-platform-lib-client";
+import { IntegrationConstants } from "./constants";
+import { PlatformLibrary } from "./platform-library";
 
 export let firebot: RunRequest<any>;
 export let logger: LogWrapper;
@@ -16,47 +22,67 @@ interface ScriptParameters extends Record<string, unknown> {
 const script: Firebot.CustomScript<ScriptParameters> = {
     getScriptManifest: () => {
         return {
-            name: 'firebot-mage-platform-lib',
-            description: 'Shared platform-aware logic for multi-platform streaming',
-            author: 'The Static Mage',
+            name: "firebot-mage-platform-lib",
+            description: "Shared platform-aware logic for multi-platform streaming",
+            author: "The Static Mage",
             version: PLATFORM_LIB_VERSION,
             startupOnly: true,
-            firebotVersion: '5'
+            firebotVersion: "5"
         };
     },
     getDefaultParameters: () => {
         return {
             debug: {
-                type: 'boolean',
-                title: 'Debug Mode',
+                type: "boolean",
+                title: "Debug Mode",
                 default: false,
-                description: 'Enable debug logging'
+                description: "Enable debug logging"
             },
             overrideBuiltInVariables: {
-                type: 'boolean',
-                title: 'Override Built-In Variables [EXPERIMENTAL]',
+                type: "boolean",
+                title: "Override Built-In Variables [EXPERIMENTAL]",
                 default: false,
-                description: 'Override Firebot built-in platform variables with platform-aware logic. This is experimental and may cause issues with other scripts or integrations. Restart Firebot after changing this setting.'
+                description:
+					"Override Firebot built-in platform variables with platform-aware logic. This is experimental and may cause issues with other scripts or integrations. Restart Firebot after changing this setting."
             }
         };
     },
     run: async (runRequest: RunRequest<ScriptParameters>) => {
         firebot = runRequest;
-        const debugMode = typeof runRequest.parameters?.debug === 'boolean' ? runRequest.parameters.debug : false;
-        const overrideBuiltIn = typeof runRequest.parameters?.overrideBuiltInVariables === 'boolean' ? runRequest.parameters.overrideBuiltInVariables : false;
+        const debugMode =
+            typeof runRequest.parameters?.debug === "boolean"
+                ? runRequest.parameters.debug
+                : false;
+        const overrideBuiltIn =
+            typeof runRequest.parameters?.overrideBuiltInVariables === "boolean"
+                ? runRequest.parameters.overrideBuiltInVariables
+                : false;
         logger = new LogWrapper(runRequest.modules.logger, debugMode);
 
         // Check Firebot version requirement
         const firebotVersion = runRequest.firebot?.version;
-        if (!firebotVersion || !checkSemanticVersion(firebotVersion, '>= 5.65.3')) {
-            logger.error(`Firebot 5.65.3 or higher is required (current: ${firebotVersion || 'unknown'})`);
+        if (firebotVersion && checkSemanticVersion(firebotVersion, ">= 5.67")) {
+            logger.error(
+                `This plugin is incompatible with Firebot 5.67 and higher and will not be updated. You are running Firebot ${firebotVersion}. Please downgrade to Firebot 5.66 or uninstall this plugin.`
+            );
+            return;
+        }
+        if (!firebotVersion || !checkSemanticVersion(firebotVersion, ">= 5.65.3")) {
+            logger.error(
+                `Firebot 5.65.3 or higher is required (current: ${firebotVersion || "unknown"})`
+            );
             return;
         }
 
         logger.info(`Platform Library v${PLATFORM_LIB_VERSION} initializing...`);
 
         // Initialize Platform Library
-        platformLib = new PlatformLibrary(logger, runRequest.modules, runRequest.scriptDataDir, overrideBuiltIn);
+        platformLib = new PlatformLibrary(
+            logger,
+            runRequest.modules,
+            runRequest.scriptDataDir,
+            overrideBuiltIn
+        );
         await platformLib.initialize();
 
         // Startup scripts don't return anything - they just initialize
